@@ -13,11 +13,11 @@ const RED = "hsla(0, 72%, 50%, 1)";
 const DARK_BROWN = "hsla(23, 60%, 22%, 1)";
 const BROWN = "hsla(23, 60%, 47%, 1)";
 
-
-var p1 = new Tank(display.width/4, display.height/2, 0,0, RED);
-var p2 = new Tank(display.width * (3/4), display.height/2, 0,0, ROYAL_BLUE);
-var playerTankSize = 32;
+var playerHitBoxSize = 32;
 var tankGravity = 0.2;
+var p1 = new Tank((display.width/4), (display.height/2), 0,0, RED);
+var p2 = new Tank((display.width * (3/4)), (display.height/2), 0,0, ROYAL_BLUE);
+
 
 
 var projectiles = [];
@@ -38,7 +38,7 @@ var particlesPerBurst = 32;
 
 var particleTestTimer = 2000;
 var canSpawnParticlesTest = true;
-var particleTestSource = new MObj(display.width/2, display.height/2, 0, 0, playerTankSize, playerTankSize, ROYAL_BLUE);
+var particleTestSource = new MObj(display.width/2, display.height/2, 0, 0, playerHitBoxSize, playerHitBoxSize, ROYAL_BLUE);
 
 
 //===========================================================================================
@@ -87,7 +87,9 @@ function MObj(x,y,deltaX,deltaY,sizeX,sizeY,color){
 
 
 function Tank(x,y,deltaX,deltaY,color){
-	this.solid = new MObj(x, y, deltaX, deltaY, playerTankSize, playerTankSize, color);
+	var size = playerHitBoxSize;
+	console.log("creating player Tank at x:" + x + ", y:" + y + " with size:" + size);
+	this.solid = new MObj(x, y, deltaX, deltaY, size, size, color);
 	this.currentGun = "single";
 }
 
@@ -168,7 +170,7 @@ function incrementAlpha(hsLine, alpha){
 	updatePlayer(p2);
 
 	if (canSpawnParticlesTest){
-		createExplosion(particleTestSource, particlesPerBurst, true);
+		createExplosion(particleTestSource);
 		canSpawnParticlesTest = false;
 		window.setTimeout( function() { canSpawnParticlesTest = true; }, particleTestTimer);
 	}
@@ -190,6 +192,7 @@ function updatePlayer(player){
 		player.solid.deltaY += tankGravity;
 	}
 
+	//console.log("In updatePlayer: new position is x:" + player.solid.xPos + ", y:" + player.solid.yPos );
 
 }
 
@@ -253,6 +256,8 @@ function drawFrame(){
 
 }
 
+
+
 function drawBackdrop(){
 	var grad = ctx.createLinearGradient(0,display.height/3,0,display.height);
 	grad.addColorStop(0,"black");
@@ -268,11 +273,14 @@ function drawBackdrop(){
 
 
 
+
 function drawParticles() {
 	for (var i = 0; i < particles.length; ++i) {
 		particles[i].draw();
 	}
 }
+
+
 
 function drawTerrain() {
 	ctx.beginPath();
