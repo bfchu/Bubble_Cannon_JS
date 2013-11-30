@@ -317,12 +317,11 @@ function onKeyUp(event){
 
 
 function aimMode(player){
-	//TODO: fix NaN getting passed into ANGLE nad POWER.
-	var center = {x: player.xPos + player.size/2, y: player.yPos + player.size/2 };
-	var distanceX = Math.abs(mousePosition.x - center.x);
-	var distanceY = Math.abs(mousePosition.y - center.y);
+	var center = {x: player.solid.xPos + player.size/2, y: player.solid.yPos + player.size/2 };
+	var distanceX = (mousePosition.x - center.x);
+	var distanceY = (mousePosition.y - center.y);
 	var magnitude = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
-	var mouseAngle = Math.atan(distanceY/distanceX);
+	var mouseAngle = -Math.atan2(distanceY, distanceX);
 		
 
 	ctx.fillStyle = "#FFFFFF";
@@ -331,7 +330,7 @@ function aimMode(player){
 	ctx.stroke();
 
 	player.angle = mouseAngle;
-	player.power = magnitude;
+	player.power = Math.floor(magnitude/5);
 }
 
 
@@ -351,6 +350,7 @@ function updatePlayer(player){
 
 
 function updateProjectiles() {
+	//TODO: firing shots is crashing
 	for (var i = projectiles.length - 1; i >= 0; --i) {
 		projectiles[i].updatePhysics();
 		projectiles[i].deltaY += missileGravity;
@@ -461,9 +461,9 @@ function drawGUI(){
 
 	ctx.fillText("Player 1: " + p1.score, 32, 32);
 	ctx.fillText("Player 2: " + p2.score, display.width - 150, 32);
-	ctx.fillText("ANGLE: " + p1.angle, display.width/3, display.height * (7/8) - 16 );
+	ctx.fillText("ANGLE: " + Math.floor(utils.toDegrees(p1.angle)), display.width/3, display.height * (7/8) - 16 );
 	ctx.fillText("POWER: " + p1.power, display.width/3, display.height * (7/8) + 16 );
-	ctx.fillText("ANGLE: " + p2.angle, display.width *(2/3) - 24, display.height * (7/8) - 16 );
+	ctx.fillText("ANGLE: " + Math.floor(utils.toDegrees(p2.angle)), display.width *(2/3) - 24, display.height * (7/8) - 16 );
 	ctx.fillText("POWER: " + p2.power, display.width *(2/3) - 24, display.height * (7/8) + 16 );
 	ctx.fillText("FIRE!", display.width/2, display.height * (7/8));
 
