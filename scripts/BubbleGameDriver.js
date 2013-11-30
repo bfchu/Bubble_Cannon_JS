@@ -6,6 +6,11 @@
 var display = document.getElementById("gameCanvas");
 var ctx = display.getContext("2d");
 
+var mousePosition = {x:0, y:0};
+var mouseClick = false;
+
+var stageWidth = display.width;
+var stageHeight = display.height * (4/5);
 
 //COLORS
 const ROYAL_BLUE = "hsla(243, 69%, 38%, 1)";
@@ -21,6 +26,7 @@ var p2 = new Tank((display.width * (3/4)), (display.height/2), 0,0, ROYAL_BLUE);
 
 
 var projectiles = [];
+var missileSize = 8;
 var missileGravity = 0.16;
 
 var terrain = [];
@@ -40,9 +46,24 @@ var particleTestTimer = 2000;
 var canSpawnParticlesTest = true;
 var particleTestSource = new MObj(display.width/2, display.height/2, 0, 0, playerHitBoxSize, playerHitBoxSize, ROYAL_BLUE);
 
+window.addEventListener("keydown", onKeyDown, false);
+window.addEventListener("keyup", onKeyUp, false);
+window.addEventListener("mousedown", onMouseDown, false);
+window.addEventListener("mouseup", onMouseUp, false);
+window.addEventListener("mousemove", onMouseMove, false);
+
+
+var gameState = 0;
+var stateDefinitions = ["gameStart", "p1_Idle", "p1_Aim", "p1_Power", "p1_Fire", "p2_Idle", "p2_Aim", "p2_Power", "p2_Fire,"];
+//var gameReady = false;
+
+//buildGameStates();
+buildTerrain();
+
+
 
 //===========================================================================================
-
+//CONSTRUCTORS
 
 function MObj(x,y,deltaX,deltaY,sizeX,sizeY,color){
 	this.xPos = x;
@@ -87,12 +108,31 @@ function MObj(x,y,deltaX,deltaY,sizeX,sizeY,color){
 
 
 function Tank(x,y,deltaX,deltaY,color){
-	var size = playerHitBoxSize;
-	console.log("creating player Tank at x:" + x + ", y:" + y + " with size:" + size);
-	this.solid = new MObj(x, y, deltaX, deltaY, size, size, color);
+	this.size = playerHitBoxSize;
+	
+	console.log("creating player Tank at x:" + x + ", y:" + y + " with size:" + this.size);
+	
+	this.solid = new MObj(x, y, deltaX, deltaY, this.size, this.size, color);
+	this.score = 0;
 	this.currentGun = "single";
+	this.angle = 0;
+	this.power = 50;
+
+
+	this.fire = function(){
+		var originX = this.xPos + this.size/2;
+		var originY = this.yPos - this.size/2;
+		var deltaX = Math.cos(this.angle) * this.power/10;
+		var deltaY = Math.sin(this.angle) * this.power/10;
+		var missile = new MObj(originX, originY, deltaX, deltaY, missileSize, missileSize, this.color);
+		projectiles.push(missile);
+	}
 }
 
+
+
+//=========================================================================================
+//
 
 function createExplosion(explodee, particleDensity, bounce) {
 	var centerX = explodee.xPos + explodee.sizeX / 2;
@@ -135,10 +175,32 @@ function incrementAlpha(hsLine, alpha){
 	return newHsla;
 }
 
+
 //========================================================================================================================
 //WORLD INITIALIZATION
 
-(function buildTerrain(){
+// function buildGameStates(){
+// 	var onStart = new State("onStart");
+// 	onStart.onEnter(buildTerrain);
+// 	onStart.onUpdate(setGameReady);
+
+// 	var p1_Idle = new State("p1_Idle");
+// 	p1_Idle.onEnter(setGUI);
+
+
+// 	addTransition("toPlayer1Turn", onStart, p1_Idle, gameReady);
+
+// 	gameState.currentState = null;
+// 	gameState.initialState = onStart;
+
+
+// }
+
+// function setGameReady(){
+// 	gameReady = true;
+// }
+
+function buildTerrain(){
 
 
 	for(var kk = 0; kk < display.width ; kk += terrainChunkWidth ){
@@ -155,9 +217,35 @@ function incrementAlpha(hsLine, alpha){
 	terrainMask[terrainMask.length] = {x:0, y:display.height};
 
 
-})();
+}
+
+function setGUI(player){
 
 
+}
+
+//=======================================================================================
+//Event Handlers
+
+function onMouseMove(event) {
+	mousePosition = { x : event.pageX, y : event.pageY };
+}
+
+function onMouseDown(event) {
+	mouseClick = true;
+}
+
+function onMouseUp(event) {
+	mouseClick = false;
+}
+
+function onKeyDown(event){
+
+}
+
+function onKeyUp(event){
+
+}
 
 //=======================================================================================
 //GAME SETUP / START
@@ -166,20 +254,85 @@ function incrementAlpha(hsLine, alpha){
 (function update(){
 	window.requestAnimationFrame(update, display);
 
-	updatePlayer(p1);
-	updatePlayer(p2);
+	//Check if State:
+	switch(gameState){
+		case 0: //gameStart
+			//buildTerrain();
+			gameState = 1;
+			break;
+		case 1: //	p1_Idle
+			if(mouseClick){
+				gameState = 2;
+			}
+			break;
+		case 2: //  p1_Aim
+			aimMode(p1);
+			if(!mouseClick){
+				gameState = 4;
+			}
+			break;
+		case 3: //  p1_Power
 
+			break;
+		case 4: //  p1_Fire
+			p1.fire();
+			gameState = 5;
+			break;
+		case 5: //  p2_Idle
+
+			break;
+		case 6: //  p2_Aim
+			aimMode(p2);
+			if(!mouseClick){
+				gameState = 8;
+			}
+			break;
+		case 7: //  p2_Power
+
+			break;
+		case 8: //  p2_Fire
+			p2.fire();
+			gameState = 1;
+			break;
+		default:
+			break;
+	}
+
+
+	//TESTS:
 	if (canSpawnParticlesTest){
-		createExplosion(particleTestSource);
+		createExplosion(particleTestSource, particlesPerBurst, true);
 		canSpawnParticlesTest = false;
 		window.setTimeout( function() { canSpawnParticlesTest = true; }, particleTestTimer);
 	}
 
+	//Always do these steps:
+	updatePlayer(p1);
+	updatePlayer(p2);
+	updateProjectiles();
 	updateParticles();
 
 	drawFrame();
 })();
 
+
+function aimMode(player){
+	//TODO: fix NaN getting passed into ANGLE nad POWER.
+	var center = {x: player.xPos + player.size/2, y: player.yPos + player.size/2 };
+	var distanceX = Math.abs(mousePosition.x - center.x);
+	var distanceY = Math.abs(mousePosition.y - center.y);
+	var magnitude = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+	var mouseAngle = Math.atan(distanceY/distanceX);
+		
+
+	ctx.fillStyle = "#FFFFFF";
+	ctx.moveTo(center.x, center.y);
+	ctx.lineTo(mousePosition.x, mousePosition.y);
+	ctx.stroke();
+
+	player.angle = mouseAngle;
+	player.power = magnitude;
+}
 
 
 function updatePlayer(player){
@@ -197,9 +350,41 @@ function updatePlayer(player){
 }
 
 
+function updateProjectiles() {
+	for (var i = projectiles.length - 1; i >= 0; --i) {
+		projectiles[i].updatePhysics();
+		projectiles[i].deltaY += missileGravity;
+
+		if( projectiles[i].intersectsTerrain || 
+			projectiles[i].isIntersecting(p1.solid) || 
+			projectiles[i].isIntersecting(p2.solid)  ){
+
+			single_explode(projectiles[i]);
+			projectiles.splice(projectiles[i]);
+		}
+
+	}
+
+}
+
+function single_explode(shot){
 
 
+	if(shot.isIntersecting(p1.solid)){
+		p2.score += 100;
+		//TODO: create physics interaction;
+	} 
+	if(shot.isIntersecting(p2.solid)){
+		p1.score += 100;
+		//TODO: create physics interation;
+	}
 
+	if(shot.intersectsTerrain){
+		//TODO: measure distance from the explosion to the nearest tank(s) and deal score damage and physics appropriately.
+	}
+
+	createExplosion(shot);
+}
 
 
 function updateParticles() {
@@ -251,9 +436,10 @@ function drawFrame(){
 	p1.solid.draw();
 	p2.solid.draw();
 
+	drawProjectiles();
 	drawParticles();
 	drawTerrain();
-
+	drawGUI();
 }
 
 
@@ -270,7 +456,18 @@ function drawBackdrop(){
 
 
 
+function drawGUI(){
+	ctx.fillStyle = "#FFFFFF";
 
+	ctx.fillText("Player 1: " + p1.score, 32, 32);
+	ctx.fillText("Player 2: " + p2.score, display.width - 150, 32);
+	ctx.fillText("ANGLE: " + p1.angle, display.width/3, display.height * (7/8) - 16 );
+	ctx.fillText("POWER: " + p1.power, display.width/3, display.height * (7/8) + 16 );
+	ctx.fillText("ANGLE: " + p2.angle, display.width *(2/3) - 24, display.height * (7/8) - 16 );
+	ctx.fillText("POWER: " + p2.power, display.width *(2/3) - 24, display.height * (7/8) + 16 );
+	ctx.fillText("FIRE!", display.width/2, display.height * (7/8));
+
+}
 
 
 
@@ -280,6 +477,12 @@ function drawParticles() {
 	}
 }
 
+
+function drawProjectiles() {
+	for (var i = 0; i < projectiles.length; ++i) {
+		projectiles[i].draw();
+	}
+}
 
 
 function drawTerrain() {
