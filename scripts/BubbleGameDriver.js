@@ -46,6 +46,8 @@ var particleTestTimer = 2000;
 var canSpawnParticlesTest = true;
 var particleTestSource = new MObj(display.width/2, display.height/2, 0, 0, playerHitBoxSize, playerHitBoxSize, ROYAL_BLUE);
 
+var lines = [];
+
 window.addEventListener("keydown", onKeyDown, false);
 window.addEventListener("keyup", onKeyUp, false);
 window.addEventListener("mousedown", onMouseDown, false);
@@ -115,16 +117,15 @@ function Tank(x,y,deltaX,deltaY,color){
 	this.solid = new MObj(x, y, deltaX, deltaY, this.size, this.size, color);
 	this.score = 0;
 	this.currentGun = "single";
+	this.gunTip = {};
 	this.angle = 0;
 	this.power = 50;
 
 
 	this.fire = function(){
-		var originX = this.xPos + this.size/2;
-		var originY = this.yPos - this.size/2;
 		var deltaX = Math.cos(this.angle) * this.power/10;
 		var deltaY = Math.sin(this.angle) * this.power/10;
-		var missile = new MObj(originX, originY, deltaX, deltaY, missileSize, missileSize, this.color);
+		var missile = new MObj(this.gunTip.x, this.gunTip.y, deltaX, deltaY, missileSize, missileSize, this.solid.color);
 		projectiles.push(missile);
 	}
 }
@@ -279,7 +280,9 @@ function onKeyUp(event){
 			gameState = 5;
 			break;
 		case 5: //  p2_Idle
-
+			if(mouseClick){
+				gameState = 6;
+			}
 			break;
 		case 6: //  p2_Aim
 			aimMode(p2);
@@ -322,15 +325,17 @@ function aimMode(player){
 	var distanceY = (mousePosition.y - center.y);
 	var magnitude = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
 	var mouseAngle = -Math.atan2(distanceY, distanceX);
+
+	var unitV = {x: distanceX/magnitude, y: distanceY/magnitude};
+	var lineStart = {x: center.x + unitV.x * 32, y: center.y + unitV.y * 32};
 		
+	lines[lines.length] = lineStart;
+	lines[lines.length] = mousePosition;
 
-	ctx.fillStyle = "#FFFFFF";
-	ctx.moveTo(center.x, center.y);
-	ctx.lineTo(mousePosition.x, mousePosition.y);
-	ctx.stroke();
-
+	player.gunTip = lineStart;
 	player.angle = mouseAngle;
 	player.power = Math.floor(magnitude/5);
+
 }
 
 
@@ -379,7 +384,7 @@ function single_explode(shot){
 		//TODO: create physics interation;
 	}
 
-	if(shot.intersectsTerrain){
+	if(shot.intersectsTerrain()){
 		//TODO: measure distance from the explosion to the nearest tank(s) and deal score damage and physics appropriately.
 	}
 
@@ -457,15 +462,28 @@ function drawBackdrop(){
 
 
 function drawGUI(){
+
+	//ctx.fillRect(); //Fire button
+
+
 	ctx.fillStyle = "#FFFFFF";
 
+	ctx.fillText("FIRE!", display.width/2, display.height * (7/8));
 	ctx.fillText("Player 1: " + p1.score, 32, 32);
 	ctx.fillText("Player 2: " + p2.score, display.width - 150, 32);
 	ctx.fillText("ANGLE: " + Math.floor(utils.toDegrees(p1.angle)), display.width/3, display.height * (7/8) - 16 );
 	ctx.fillText("POWER: " + p1.power, display.width/3, display.height * (7/8) + 16 );
 	ctx.fillText("ANGLE: " + Math.floor(utils.toDegrees(p2.angle)), display.width *(2/3) - 24, display.height * (7/8) - 16 );
 	ctx.fillText("POWER: " + p2.power, display.width *(2/3) - 24, display.height * (7/8) + 16 );
-	ctx.fillText("FIRE!", display.width/2, display.height * (7/8));
+
+
+	for(var ii = 0; ii < lines.length; ii+=2){
+		ctx.strokeStyle = "#FFFFFF";
+		ctx.moveTo(lines[ii].x, lines[ii].y);
+		ctx.lineTo(lines[ii+1].x, lines[ii+1].y);
+		ctx.stroke();
+	}
+	lines.splice(0,lines.length); //clear the array without wasting more memory.
 
 }
 
@@ -486,16 +504,16 @@ function drawProjectiles() {
 
 
 function drawTerrain() {
+	var grad = ctx.createLinearGradient(0,display.height,0,display.height/2);
+	grad.addColorStop(0,DARK_BROWN);
+	grad.addColorStop(1,BROWN);
+	ctx.fillStyle = grad;
+
 	ctx.beginPath();
 	ctx.moveTo(terrainMask[0].x, terrainMask[0].y);
 	for (var ii = 0; ii < terrainMask.length - 1; ++ii) {
 		ctx.lineTo(terrainMask[ii+1].x, terrainMask[ii+1].y);
 	};
-
-	var grad = ctx.createLinearGradient(0,display.height,0,display.height/2);
-	grad.addColorStop(0,DARK_BROWN);
-	grad.addColorStop(1,BROWN);
-	ctx.fillStyle = grad;
 
 	ctx.fill();
 
