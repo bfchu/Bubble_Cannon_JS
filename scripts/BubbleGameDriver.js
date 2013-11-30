@@ -351,7 +351,7 @@ function aimMode(player){
 
 	player.gunTip = lineStart;
 	player.angle = mouseAngle;
-	player.power = Math.floor(magnitude/5);
+	player.power = Math.floor(magnitude/4);
 
 }
 
@@ -385,7 +385,7 @@ function updateProjectiles() {
 			projectiles.splice(i,1);
 		}
 
-		if(projectiles[i].isOffScreen){
+		if(projectiles[i].isOffScreen()){
 			projectiles.splice(i,1);
 		}
 
