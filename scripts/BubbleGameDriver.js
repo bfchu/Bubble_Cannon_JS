@@ -20,6 +20,7 @@ const BROWN = "hsla(23, 60%, 47%, 1)";
 
 var playerHitBoxSize = 32;
 var tankGravity = 0.2;
+var gunLength = 40;
 var p1 = new Tank((display.width/4), (display.height/2), 0,0, RED);
 var p2 = new Tank((display.width * (3/4)), (display.height/2), 0,0, ROYAL_BLUE);
 
@@ -124,8 +125,9 @@ function Tank(x,y,deltaX,deltaY,color){
 
 	this.fire = function(){
 		var deltaX = Math.cos(this.angle) * this.power/10;
-		var deltaY = Math.sin(this.angle) * this.power/10;
-		var missile = new MObj(this.gunTip.x, this.gunTip.y, deltaX, deltaY, missileSize, missileSize, this.solid.color);
+		var deltaY = Math.sin(-this.angle) * this.power/10;
+		var missile = new MObj(this.gunTip.x - missileSize/2, this.gunTip.y - missileSize/2, deltaX, deltaY, missileSize, missileSize, this.solid.color);
+		missile.blastForce = 10;
 		projectiles.push(missile);
 	}
 }
@@ -155,7 +157,9 @@ function createExplosion(explodee, particleDensity, bounce) {
 		var particle = new MObj(centerX, centerY, velocityX, velocityY, particleSize, particleSize, explodee.color);
 		particle.alpha = 1;
 		if(bounce != null){
-			particle.bounce = true;
+			if(bounce){
+				particle.bounce = true;
+			}
 		}
 		particles.push(particle);
 	}
@@ -327,7 +331,7 @@ function aimMode(player){
 	var mouseAngle = -Math.atan2(distanceY, distanceX);
 
 	var unitV = {x: distanceX/magnitude, y: distanceY/magnitude};
-	var lineStart = {x: center.x + unitV.x * 32, y: center.y + unitV.y * 32};
+	var lineStart = {x: center.x + unitV.x * gunLength, y: center.y + unitV.y * gunLength};
 		
 	lines[lines.length] = lineStart;
 	lines[lines.length] = mousePosition;
@@ -360,12 +364,12 @@ function updateProjectiles() {
 		projectiles[i].updatePhysics();
 		projectiles[i].deltaY += missileGravity;
 
-		if( projectiles[i].intersectsTerrain || 
+		if( projectiles[i].intersectsTerrain() || 
 			projectiles[i].isIntersecting(p1.solid) || 
 			projectiles[i].isIntersecting(p2.solid)  ){
 
 			single_explode(projectiles[i]);
-			projectiles.splice(projectiles[i]);
+			projectiles.splice(i,1);
 		}
 
 	}
@@ -388,7 +392,7 @@ function single_explode(shot){
 		//TODO: measure distance from the explosion to the nearest tank(s) and deal score damage and physics appropriately.
 	}
 
-	createExplosion(shot);
+	createExplosion(shot, particlesPerBurst, utils.getRandomBool());
 }
 
 

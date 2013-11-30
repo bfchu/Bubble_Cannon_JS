@@ -53,6 +53,13 @@ utils.getRandomInt = function(min, max) {
 	return Math.floor( Math.random() * (max - min + 1) ) + min;
 }
 
+utils.getRandomBool = function(){
+	if(utils.getRandomInt(1,2) % 2 != 1){
+		return true;
+	}
+	return false;
+}
+
 utils.getRandomFloat = function(min, max) {
 	return Math.random() * (max - min) + min;
 }
