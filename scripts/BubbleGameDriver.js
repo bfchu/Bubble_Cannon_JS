@@ -15,6 +15,8 @@ var stageHeight = display.height * (4/5);
 //COLORS
 const ROYAL_BLUE = "hsla(243, 69%, 38%, 1)";
 const RED = "hsla(0, 72%, 50%, 1)";
+const VIOLET = "hsla(279, 72%, 48%, 1)";
+const SEAFOAM = "hsla(150, 77%, 50%, 1)";
 const DARK_BROWN = "hsla(23, 60%, 22%, 1)";
 const BROWN = "hsla(23, 60%, 47%, 1)";
 
@@ -22,8 +24,7 @@ var playerHitBoxSize = 32;
 var tankGravity = 0.2;
 var gunLength = 40;
 var p1 = new Tank((display.width/4), (display.height/2), 0,0, RED);
-var p2 = new Tank((display.width * (3/4)), (display.height/2), 0,0, ROYAL_BLUE);
-
+var p2 = new Tank((display.width * (3/4)), (display.height/2), 0,0, VIOLET);
 
 
 var projectiles = [];
@@ -41,13 +42,13 @@ var particleGravity = .16;
 var particleFade = 0.01; //(1/72); //72 frames to disapear
 var minParticleSpeed = 1;
 var maxParticleSpeed = 12;
-var particlesPerBurst = 32;
+var particlesPerBurst = 48;//32;
 
 var particleTestTimer = 2000;
 var canSpawnParticlesTest = true;
-var particleTestSource = new MObj(display.width/2, display.height/2, 0, 0, playerHitBoxSize, playerHitBoxSize, ROYAL_BLUE);
 
 var lines = [];
+var powerBar = {};
 
 window.addEventListener("keydown", onKeyDown, false);
 window.addEventListener("keyup", onKeyUp, false);
@@ -56,6 +57,8 @@ window.addEventListener("mouseup", onMouseUp, false);
 window.addEventListener("mousemove", onMouseMove, false);
 
 
+var turnDelay = 100; //0 to 100 percent
+var gameWaiting = false;
 var gameState = 0;
 var stateDefinitions = ["gameStart", "p1_Idle", "p1_Aim", "p1_Power", "p1_Fire", "p2_Idle", "p2_Aim", "p2_Power", "p2_Fire,"];
 //var gameReady = false;
@@ -142,6 +145,15 @@ function Tank(x,y,deltaX,deltaY,color){
 		var missile = new MObj(this.gunTip.x - missileSize/2, this.gunTip.y - missileSize/2, deltaX, deltaY, missileSize, missileSize, this.solid.color);
 		missile.blastForce = 10;
 		projectiles.push(missile);
+
+		var waitTimeMS = Math.min(Math.abs(turnDelay * this.power/10), 1800);
+		console.log("In Tank.fire(): waitTimeMS: " + waitTimeMS + "ms");
+		gameWaiting = true;
+		window.setTimeout( function() {gameWaiting = false;}, waitTimeMS);
+	}
+
+	this.lose = function(){
+
 	}
 }
 
@@ -279,7 +291,7 @@ function onKeyUp(event){
 			gameState = 1;
 			break;
 		case 1: //	p1_Idle
-			if(mouseClick){
+			if(mouseClick && !gameWaiting){
 				gameState = 2;
 			}
 			break;
@@ -297,7 +309,7 @@ function onKeyUp(event){
 			gameState = 5;
 			break;
 		case 5: //  p2_Idle
-			if(mouseClick){
+			if(mouseClick && !gameWaiting){
 				gameState = 6;
 			}
 			break;
@@ -321,7 +333,8 @@ function onKeyUp(event){
 
 	//TESTS:
 	if (canSpawnParticlesTest){
-		createExplosion(particleTestSource, particlesPerBurst, true);
+		var particleTestSource = new MObj(display.width/utils.getRandomInt(1,100), display.height/utils.getRandomInt(2,100), 0, 0, playerHitBoxSize, playerHitBoxSize, DARK_BROWN);
+		createExplosion(particleTestSource);
 		canSpawnParticlesTest = false;
 		window.setTimeout( function() { canSpawnParticlesTest = true; }, particleTestTimer);
 	}
@@ -349,6 +362,8 @@ function aimMode(player){
 	lines[lines.length] = lineStart;
 	lines[lines.length] = mousePosition;
 
+	powerBar = {x: magnitude * (3/4), y: 40};
+
 	player.gunTip = lineStart;
 	player.angle = mouseAngle;
 	player.power = Math.floor(magnitude/4);
@@ -366,7 +381,9 @@ function updatePlayer(player){
 		player.solid.deltaY += tankGravity;
 	}
 
-	//console.log("In updatePlayer: new position is x:" + player.solid.xPos + ", y:" + player.solid.yPos );
+	if(player.solid.isOffScreen){
+		player.lose();
+	}
 
 }
 
@@ -383,9 +400,7 @@ function updateProjectiles() {
 
 			single_explode(projectiles[i]);
 			projectiles.splice(i,1);
-		}
-
-		if(projectiles[i].isOffScreen()){
+		} else if(projectiles[i].isOffScreen()){
 			projectiles.splice(i,1);
 		}
 
@@ -487,7 +502,7 @@ function drawGUI(){
 	ctx.fillText("ANGLE: " + Math.floor(utils.toDegrees(p2.angle)), display.width *(2/3) - 24, display.height * (7/8) - 16 );
 	ctx.fillText("POWER: " + p2.power, display.width *(2/3) - 24, display.height * (7/8) + 16 );
 
-
+	//Draw angle indicator lines
 	for(var ii = 0; ii < lines.length; ii+=2){
 		ctx.strokeStyle = "#FFFFFF";
 		ctx.moveTo(lines[ii].x, lines[ii].y);
@@ -496,6 +511,13 @@ function drawGUI(){
 	}
 	lines.splice(0,lines.length); //clear the array without wasting more memory.
 
+	//Draw Power indicator bar
+
+	if(powerBar != null){
+		ctx.fillStyle = SEAFOAM;
+		ctx.fillRect(display.width * (2/5), display.height *(3/4), powerBar.x, powerBar.y);
+		powerBar = null;
+	}
 }
 
 
