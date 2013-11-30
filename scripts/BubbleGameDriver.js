@@ -107,6 +107,19 @@ function MObj(x,y,deltaX,deltaY,sizeX,sizeY,color){
 		}
 		return false;
 	}
+
+	this.isOffScreen = function(){
+		if (this.xPos <= -this.sizeX) {
+			return true;
+		} else if (this.xPos > display.width) {
+			return true;
+		} else if (this.yPos <= -this.sizeY) {
+			return true;
+		} else if (this.yPos > display.height) {
+			return true;
+		}
+		return false;
+	}
 }
 
 
@@ -372,6 +385,10 @@ function updateProjectiles() {
 			projectiles.splice(i,1);
 		}
 
+		if(projectiles[i].isOffScreen){
+			projectiles.splice(i,1);
+		}
+
 	}
 
 }
@@ -413,17 +430,7 @@ function updateParticles() {
 		}
 
 		// remove particles that are no longer on screen.
-		var shouldRemoveParticle = false;
-	
-		if (particles[i].xPos <= -particles[i].sizeX) {
-			shouldRemoveParticle = true;
-		} else if (particles[i].xPos > display.width) {
-			shouldRemoveParticle = true;
-		} else if (particles[i].yPos <= -particles[i].sizeY) {
-			shouldRemoveParticle = true;
-		} else if (particles[i].yPos > display.height) {
-			shouldRemoveParticle = true;
-		}
+		var shouldRemoveParticle = particles[i].isOffScreen();
 
 		if(particles[i].alpha <= 0){
 			shouldRemoveParticle = true;
