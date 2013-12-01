@@ -44,7 +44,7 @@ var minParticleSpeed = 1;
 var maxParticleSpeed = 12;
 var particlesPerBurst = 48;//32;
 
-var particleTestTimer = 2000;
+var particleTestTimer = 2400;
 var canSpawnParticlesTest = true;
 
 var lines = [];
@@ -123,6 +123,15 @@ function MObj(x,y,deltaX,deltaY,sizeX,sizeY,color){
 		}
 		return false;
 	}
+
+	this.distanceTo = function(target){
+		var center = {x: this.xPos + this.sizeX/2, y: this.yPos + this.sizeY/2};
+		var distanceX = (target.xPos - center.x);
+		var distanceY = (target.yPos - center.y);
+		var magnitude = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+
+		return magnitude;
+	}
 }
 
 
@@ -133,6 +142,7 @@ function Tank(x,y,deltaX,deltaY,color){
 	
 	this.solid = new MObj(x, y, deltaX, deltaY, this.size, this.size, color);
 	this.score = 0;
+	this.damage = 1;
 	this.currentGun = "single";
 	this.gunTip = {};
 	this.angle = 0;
@@ -144,6 +154,7 @@ function Tank(x,y,deltaX,deltaY,color){
 		var deltaY = Math.sin(-this.angle) * this.power/10;
 		var missile = new MObj(this.gunTip.x - missileSize/2, this.gunTip.y - missileSize/2, deltaX, deltaY, missileSize, missileSize, this.solid.color);
 		missile.blastForce = 10;
+		missile.blastRadius = 96;
 		projectiles.push(missile);
 
 		var waitTimeMS = Math.min(Math.abs(turnDelay * this.power/10), 1800);
@@ -152,8 +163,43 @@ function Tank(x,y,deltaX,deltaY,color){
 		window.setTimeout( function() {gameWaiting = false;}, waitTimeMS);
 	}
 
-	this.lose = function(){
+	this.impulse = function(proximity, force, source){ //force is a scalar, the source needs {xPos: , yPos: , blastRadius: }.
+		//get component vectors and unit vector.
+		//if( this.solid.xPos >= source.xPos){
+			var distX = ( (this.solid.xPos + this.size/2) - (source.xPos + source.sizeX) );
+		// }	else {
+		// 	var distX = ( (source.xPos + source.sizeX) - (this.solid.xPos + this.size/2) );
+		// }
+		var distY = Math.abs( (this.solid.yPos + this.size/2) - (source.yPos + source.sizeY) );
+		var magnitude = Math.sqrt(distX*distX + distY*distY);
+		var unitV = {x: distX/magnitude, y: distY/magnitude};
+		var forceV = {x: unitV.x * force, y: unitV.y * force};
 
+		//reduce vector based on distance.
+		if(proximity > 0 &&
+			proximity <= source.blastRadius){
+			forceV.x -= forceV.x * (proximity/source.blastRadius); // multiply forceV by the percentage of the blastRadius that proximity is.
+			forceV.y -= forceV.y * (proximity/source.blastRadius); 
+		}
+
+		//increase vectors based on Tank's impulse resistance.
+
+		forceV.x *= this.damage/250;
+
+
+		//apply acceleration based on tank's current distance from the ground.
+		this.solid.deltaX += forceV.x;
+		if(forceV.y > 0){
+			this.solid.deltaY -= forceV.y;
+		} else{
+			this.solid.deltaY += forceV.y;
+		}
+
+		console.log("in Tank.impulse(): forceX: " + forceV.x + ", forceY: " + forceV.y);
+	}
+
+	this.lose = function(){
+		//canSpawnParticlesTest = true;
 	}
 }
 
@@ -333,7 +379,7 @@ function onKeyUp(event){
 
 	//TESTS:
 	if (canSpawnParticlesTest){
-		var particleTestSource = new MObj(display.width/utils.getRandomInt(1,100), display.height/utils.getRandomInt(2,100), 0, 0, playerHitBoxSize, playerHitBoxSize, DARK_BROWN);
+		var particleTestSource = new MObj(display.width/utils.getRandomInt(1,8), display.height/utils.getRandomInt(2,8), 0, 0, playerHitBoxSize, playerHitBoxSize, SEAFOAM);
 		createExplosion(particleTestSource);
 		canSpawnParticlesTest = false;
 		window.setTimeout( function() { canSpawnParticlesTest = true; }, particleTestTimer);
@@ -381,9 +427,10 @@ function updatePlayer(player){
 		player.solid.deltaY += tankGravity;
 	}
 
-	if(player.solid.isOffScreen){
-		player.lose();
-	}
+	// if(player.solid.isOffScreen){
+	// 	console.log("In updatePlayer():  player isOffScreen" );
+	// 	player.lose();
+	// }
 
 }
 
@@ -408,20 +455,33 @@ function updateProjectiles() {
 
 }
 
-function single_explode(shot){
+function single_explode(shot){ //single is the shot type.
 
 
 	if(shot.isIntersecting(p1.solid)){
 		p2.score += 100;
+		p1.damage += 100;
+		p1.impulse(0, shot.blastForce, shot);
 		//TODO: create physics interaction;
 	} 
 	if(shot.isIntersecting(p2.solid)){
 		p1.score += 100;
+		p2.damage += 100;
+		p2.impulse(0, shot.blastForce, shot);
 		//TODO: create physics interation;
 	}
 
 	if(shot.intersectsTerrain()){
 		//TODO: measure distance from the explosion to the nearest tank(s) and deal score damage and physics appropriately.
+		var distance_p1 = shot.distanceTo(p1.solid);
+		var distance_p2 = shot.distanceTo(p2.solid);
+
+		if(distance_p1 <= shot.blastRadius){
+			p1.impulse(distance_p1, shot.blastForce, shot);
+		}
+		if(distance_p2 <= shot.blastRadius){
+			p2.impulse(distance_p2, shot.blastForce, shot);
+		}
 	}
 
 	createExplosion(shot, particlesPerBurst, utils.getRandomBool());
