@@ -43,9 +43,9 @@ var particleFade = 0.01; //(1/72); //72 frames to disapear
 var minParticleSpeed = 1;
 var maxParticleSpeed = 12;
 var particlesPerBurst = 48;//32;
+var particleTestTimer = 1200;
 
-var particleTestTimer = 2400;
-var canSpawnParticlesTest = true;
+var canSpawnParticlesTest = false;
 
 var lines = [];
 var powerBar = {};
@@ -60,7 +60,7 @@ window.addEventListener("mousemove", onMouseMove, false);
 var turnDelay = 100; //0 to 100 percent
 var gameWaiting = false;
 var gameState = 0;
-var stateDefinitions = ["gameStart", "p1_Idle", "p1_Aim", "p1_Power", "p1_Fire", "p2_Idle", "p2_Aim", "p2_Power", "p2_Fire,"];
+var stateDefinitions = ["gameStart", "p1_Idle", "p1_Aim", "p1_Power", "p1_Fire", "p2_Idle", "p2_Aim", "p2_Power", "p2_Fire,", "gameOver"];
 //var gameReady = false;
 
 //buildGameStates();
@@ -143,6 +143,7 @@ function Tank(x,y,deltaX,deltaY,color){
 	this.solid = new MObj(x, y, deltaX, deltaY, this.size, this.size, color);
 	this.score = 0;
 	this.damage = 1;
+	this.isAlive = true;
 	this.currentGun = "single";
 	this.gunTip = {};
 	this.angle = 0;
@@ -198,8 +199,19 @@ function Tank(x,y,deltaX,deltaY,color){
 		console.log("in Tank.impulse(): forceX: " + forceV.x + ", forceY: " + forceV.y);
 	}
 
+	this.explode = function(){
+		//createExplosion(this, 200, true);
+		this.isAlive = false;
+
+		this.solid.xPos = null;
+		this.solid.yPos = null;
+
+		this.lose();
+	}
+
 	this.lose = function(){
-		//canSpawnParticlesTest = true;
+		canSpawnParticlesTest = true;
+		gameState = 9;
 	}
 }
 
@@ -372,17 +384,22 @@ function onKeyUp(event){
 			p2.fire();
 			gameState = 1;
 			break;
+		case 9:
 		default:
+			//gameOver stuff;
 			break;
 	}
 
 
 	//TESTS:
 	if (canSpawnParticlesTest){
-		var particleTestSource = new MObj(display.width/utils.getRandomInt(1,8), display.height/utils.getRandomInt(2,8), 0, 0, playerHitBoxSize, playerHitBoxSize, SEAFOAM);
+		var particleTestSource = new MObj(display.width/2 + utils.getRandomInt(-display.width/2, display.width/2),
+										 display.height * 1/utils.getRandomInt(2,8), 
+										 0, 0, playerHitBoxSize, playerHitBoxSize, SEAFOAM);
+
 		createExplosion(particleTestSource);
 		canSpawnParticlesTest = false;
-		window.setTimeout( function() { canSpawnParticlesTest = true; }, particleTestTimer);
+		window.setTimeout( function() { canSpawnParticlesTest = true; }, utils.getRandomInt(100, particleTestTimer));
 	}
 
 	//Always do these steps:
@@ -413,45 +430,6 @@ function aimMode(player){
 	player.gunTip = lineStart;
 	player.angle = mouseAngle;
 	player.power = Math.floor(magnitude/4);
-
-}
-
-
-function updatePlayer(player){
-	player.solid.updatePhysics();
-	
-	if(player.solid.intersectsTerrain()){
-		player.solid.deltaY = 0;
-		player.solid.deltaX = 0;
-	} else{
-		player.solid.deltaY += tankGravity;
-	}
-
-	// if(player.solid.isOffScreen){
-	// 	console.log("In updatePlayer():  player isOffScreen" );
-	// 	player.lose();
-	// }
-
-}
-
-
-function updateProjectiles() {
-	//TODO: firing shots is crashing
-	for (var i = projectiles.length - 1; i >= 0; --i) {
-		projectiles[i].updatePhysics();
-		projectiles[i].deltaY += missileGravity;
-
-		if( projectiles[i].intersectsTerrain() || 
-			projectiles[i].isIntersecting(p1.solid) || 
-			projectiles[i].isIntersecting(p2.solid)  ){
-
-			single_explode(projectiles[i]);
-			projectiles.splice(i,1);
-		} else if(projectiles[i].isOffScreen()){
-			projectiles.splice(i,1);
-		}
-
-	}
 
 }
 
@@ -486,6 +464,48 @@ function single_explode(shot){ //single is the shot type.
 
 	createExplosion(shot, particlesPerBurst, utils.getRandomBool());
 }
+
+
+
+function updatePlayer(player){
+	player.solid.updatePhysics();
+	
+	if(player.solid.intersectsTerrain()){
+		player.solid.deltaY = 0;
+		player.solid.deltaX = 0;
+	} else{
+		player.solid.deltaY += tankGravity;
+	}
+
+	if(player.solid.isOffScreen()){
+		player.solid.deltaY = 0;
+		player.solid.deltaX = 0;
+		player.explode();
+	}
+
+}
+
+
+function updateProjectiles() {
+	//TODO: firing shots is crashing
+	for (var i = projectiles.length - 1; i >= 0; --i) {
+		projectiles[i].updatePhysics();
+		projectiles[i].deltaY += missileGravity;
+
+		if( projectiles[i].intersectsTerrain() || 
+			projectiles[i].isIntersecting(p1.solid) || 
+			projectiles[i].isIntersecting(p2.solid)  ){
+
+			single_explode(projectiles[i]);
+			projectiles.splice(i,1);
+		} else if(projectiles[i].isOffScreen()){
+			projectiles.splice(i,1);
+		}
+
+	}
+
+}
+
 
 
 function updateParticles() {
@@ -524,8 +544,12 @@ function drawFrame(){
 	clearDisplay();
 	drawBackdrop();
 
-	p1.solid.draw();
-	p2.solid.draw();
+	if(p1.isAlive){
+		p1.solid.draw();
+	}
+	if(p2.isAlive){
+		p2.solid.draw();
+	}
 
 	drawProjectiles();
 	drawParticles();
