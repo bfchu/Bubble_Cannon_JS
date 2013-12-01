@@ -290,7 +290,8 @@ function incrementAlpha(hsLine, alpha){
 
 function buildTerrain(){
 
-
+	//TODO: make the render mask of the terrain reflect the 'sticks' that are the back end.
+	//TODO: make the terrain more interesting. ie. hills, valleys, plateaus
 	for(var kk = 0; kk < display.width ; kk += terrainChunkWidth ){
 		var grain = new MObj(display.width - kk - terrainChunkWidth, display.height - display.height/3, 0,0, terrainChunkWidth, display.height/3, BROWN);
 		terrain.push(grain);
@@ -430,25 +431,20 @@ function aimMode(player){
 	player.gunTip = lineStart;
 	player.angle = mouseAngle;
 	player.power = Math.floor(magnitude/4);
-
 }
 
+
 function single_explode(shot){ //single is the shot type.
-
-
 	if(shot.isIntersecting(p1.solid)){
 		p2.score += 100;
 		p1.damage += 100;
 		p1.impulse(0, shot.blastForce, shot);
-		//TODO: create physics interaction;
 	} 
 	if(shot.isIntersecting(p2.solid)){
 		p1.score += 100;
 		p2.damage += 100;
 		p2.impulse(0, shot.blastForce, shot);
-		//TODO: create physics interation;
 	}
-
 	if(shot.intersectsTerrain()){
 		//TODO: measure distance from the explosion to the nearest tank(s) and deal score damage and physics appropriately.
 		var distance_p1 = shot.distanceTo(p1.solid);
@@ -461,10 +457,8 @@ function single_explode(shot){ //single is the shot type.
 			p2.impulse(distance_p2, shot.blastForce, shot);
 		}
 	}
-
 	createExplosion(shot, particlesPerBurst, utils.getRandomBool());
 }
-
 
 
 function updatePlayer(player){
@@ -487,7 +481,6 @@ function updatePlayer(player){
 
 
 function updateProjectiles() {
-	//TODO: firing shots is crashing
 	for (var i = projectiles.length - 1; i >= 0; --i) {
 		projectiles[i].updatePhysics();
 		projectiles[i].deltaY += missileGravity;
