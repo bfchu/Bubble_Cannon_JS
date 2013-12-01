@@ -16,6 +16,7 @@ var stageHeight = display.height * (4/5);
 const ROYAL_BLUE = "hsla(243, 69%, 38%, 1)";
 const RED = "hsla(0, 72%, 50%, 1)";
 const VIOLET = "hsla(279, 72%, 48%, 1)";
+const GOLDEN_YELLOW = "hsla(55, 91%, 50%, 1)";
 const SEAFOAM = "hsla(150, 77%, 50%, 1)";
 const DARK_BROWN = "hsla(23, 60%, 22%, 1)";
 const BROWN = "hsla(23, 60%, 47%, 1)";
@@ -566,7 +567,7 @@ function drawBackdrop(){
 
 function drawGUI(){
 
-	//ctx.fillRect(); //Fire button
+	//TODO: ctx.fillRect(); // Fire button
 
 
 	ctx.fillStyle = "#FFFFFF";
@@ -589,10 +590,12 @@ function drawGUI(){
 	lines.splice(0,lines.length); //clear the array without wasting more memory.
 
 	//Draw Power indicator bar
-
 	if(powerBar != null){
-		ctx.fillStyle = SEAFOAM;
-		ctx.fillRect(display.width * (2/5), display.height *(3/4), powerBar.x, powerBar.y);
+		var grad = ctx.createLinearGradient(display.width * (2/7), 0, display.width * (5/7), 0);
+		grad.addColorStop(0, SEAFOAM);
+		grad.addColorStop(1, GOLDEN_YELLOW);
+		ctx.fillStyle = grad;
+		ctx.fillRect(display.width * (2/7), display.height *(3/4), powerBar.x, powerBar.y);
 		powerBar = null;
 	}
 }
