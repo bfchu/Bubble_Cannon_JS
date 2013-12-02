@@ -70,6 +70,7 @@ var missileGravity = 0.16;
 
 var terrain = [];
 var terrainFallSpeed = .1;
+var fractalPoints = []; // fractalPoints.length will be two larger tan terrainComplexity.
 var terrainMask = [];
 var terrainChunkWidth = 4;
 var terrainComplexity = 6;
@@ -84,6 +85,8 @@ var particlesPerBurst = 48;//32;
 var particleTestTimer = 1200;
 
 var canSpawnParticlesTest = false;
+
+var damageText = [];
 
 var discs = [];
 var lines = [];
@@ -328,14 +331,13 @@ function getRandomSFX(min, max){
 //WORLD INITIALIZATION
 
 function buildTerrain(){
-	var fractalPoints = [];
 	fractalPoints[0] = {x:0, y:display.height * (2/3)}; //start point
+	//TODO: fix bug where the last point sometimes goes off the edge of the screen.
 	for(var ii = 0; ii < terrainComplexity; ++ii){
-		fractalPoints[ii+1] = {x: fractalPoints[ii].x + utils.getRandomInt(96, display.width/4), 
+		fractalPoints[ii+1] = {x: fractalPoints[ii].x + utils.getRandomInt(display.width/10, display.width/terrainComplexity), 
 							 y: fractalPoints[ii].y + utils.getRandomInt(-terrainComplexity, terrainComplexity) * 16};
 	}
 	fractalPoints[fractalPoints.length] = {x:display.width, y:display.height * (2/3)}; //end point
-
 
 	for(var kk = 0; kk < display.width - terrainChunkWidth; kk += terrainChunkWidth ){
 		var xPos = kk - terrainChunkWidth;
@@ -353,7 +355,6 @@ function buildTerrain(){
 		var grain = new MObj(xPos, yPos, 0, 0, terrainChunkWidth, sizeY, BROWN);
 		terrain.push(grain);
 	}
-	// terrain[terrain.length - 1] = new MObj(display.width - terrainChunkWidth, fractalPoints[fractalPoints.length-1].y, 0, 0, terrainChunkWidth, display.height/3, BROWN);
 	
 
 	//create a render mask for terrain.
@@ -591,6 +592,11 @@ function updateParticles() {
 			particles.splice(i, 1);
 		}	
 	}
+}
+
+
+function updateDamageText(){
+	
 }
 
 //=======================================================================================
