@@ -59,8 +59,8 @@ const BROWN = "hsla(23, 60%, 47%, 1)";
 var playerHitBoxSize = 32;
 var tankGravity = 0.2;
 var gunLength = 40;
-var p1 = new Tank((display.width/4), (display.height/2), 0,0, RED);
-var p2 = new Tank((display.width * (3/4)), (display.height/2), 0,0, VIOLET);
+var p1 = new Tank((display.width/4), (display.height/4), 0,0, RED);
+var p2 = new Tank((display.width * (3/4)), (display.height/4), 0,0, VIOLET);
 
 
 var projectiles = [];
@@ -71,6 +71,7 @@ var terrain = [];
 var terrainFallSpeed = .1;
 var terrainMask = [];
 var terrainChunkWidth = 4;
+var terrainComplexity = 6;
 
 var particles = [];
 var particleSize = 5;
@@ -325,43 +326,42 @@ function getRandomSFX(min, max){
 //========================================================================================================================
 //WORLD INITIALIZATION
 
-// function buildGameStates(){
-// 	var onStart = new State("onStart");
-// 	onStart.onEnter(buildTerrain);
-// 	onStart.onUpdate(setGameReady);
-
-// 	var p1_Idle = new State("p1_Idle");
-// 	p1_Idle.onEnter(setGUI);
-
-
-// 	addTransition("toPlayer1Turn", onStart, p1_Idle, gameReady);
-
-// 	gameState.currentState = null;
-// 	gameState.initialState = onStart;
-
-
-// }
-
-// function setGameReady(){
-// 	gameReady = true;
-// }
-
 function buildTerrain(){
+	var fractalPoints = [];
+	fractalPoints[0] = {x:0, y:display.height * (2/3)}; //start point
+	for(var ii = 0; ii < terrainComplexity; ++ii){
+		fractalPoints[ii+1] = {x: fractalPoints[ii].x + utils.getRandomInt(96, display.width/4), 
+							 y: fractalPoints[ii].y + utils.getRandomInt(-terrainComplexity, terrainComplexity) * 16};
+	}
+	fractalPoints[fractalPoints.length] = {x:display.width, y:display.height * (2/3)}; //end point
 
-	//TODO: make the render mask of the terrain reflect the 'sticks' that are the back end.
-	//TODO: make the terrain more interesting. ie. hills, valleys, plateaus
+
 	for(var kk = 0; kk < display.width ; kk += terrainChunkWidth ){
-		var grain = new MObj(display.width - kk - terrainChunkWidth, display.height - display.height/3, 0,0, terrainChunkWidth, display.height/3, BROWN);
+		var xPos = display.width - kk - terrainChunkWidth;
+
+		for(var ii = 0; ii < fractalPoints.length-1; ++ii){
+			if(fractalPoints[ii+1].x > xPos + terrainChunkWidth){
+				var slope = (fractalPoints[ii+1].y - fractalPoints[ii].y)/(fractalPoints[ii+1].x - fractalPoints[ii].x);
+				var x0 = fractalPoints[ii].y + fractalPoints[ii].x * slope;
+				var sizeY = Math.max(x0 - xPos * slope, 0);
+				break;
+			}
+		}
+		var yPos =  display.height - sizeY;
+
+		var grain = new MObj(xPos, yPos, 0, 0, terrainChunkWidth, sizeY, BROWN);
 		terrain.push(grain);
 	}
 	
 
 	//create a render mask for terrain.
-	//keep track of hit locations and size of explosions, then remove that from the shape.
-	terrainMask[terrainMask.length] = {x:0, y:display.height * (2/3)};
-	terrainMask[terrainMask.length] = {x:display.width, y:display.height * (2/3)};
-	terrainMask[terrainMask.length] = {x:display.width, y: display.height};
-	terrainMask[terrainMask.length] = {x:0, y:display.height};
+	//TODO: make the render mask of the terrain reflect the 'sticks' that are the back end.
+	terrainMask[0] = {x:display.width, y: display.height};
+	terrainMask[1] = {x:0, y:display.height};
+
+	for(var ii = 0; ii < fractalPoints.length; ++ii){
+		terrainMask[ii + 2] = fractalPoints[ii];
+	}
 
 
 }
