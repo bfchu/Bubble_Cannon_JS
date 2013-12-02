@@ -89,6 +89,7 @@ var canSpawnParticlesTest = false;
 var damageText = [];
 var textFade = 0.01;
 var damageColor = SEAFOAM;
+var directHitVal = 100;
 
 var discs = [];
 var lines = [];
@@ -506,16 +507,16 @@ function aimMode(player){
 
 function single_explode(shot){ //single is the shot type.
 	if(shot.isIntersecting(p1.solid)){
-		p2.score += 100;
-		p1.damage += 100;
+		p2.score += directHitVal;
+		p1.damage += directHitVal;
 		p1.impulse(0, shot.blastForce, shot);
-		addDamageText(100, p1.solid.xPos, p1.solid.yPos);
+		addDamageText(directHitVal, p1.solid.xPos, p1.solid.yPos);
 	} 
 	if(shot.isIntersecting(p2.solid)){
-		p1.score += 100;
-		p2.damage += 100;
+		p1.score += directHitVal;
+		p2.damage += directHitVal;
 		p2.impulse(0, shot.blastForce, shot);
-		addDamageText(100, p2.solid.xPos, p2.solid.yPos);
+		addDamageText(directHitVal, p2.solid.xPos, p2.solid.yPos);
 	}
 	if(shot.intersectsTerrain()){
 		//TODO: measure distance from the explosion to the nearest tank(s) and deal score damage and physics appropriately.
@@ -723,6 +724,7 @@ function drawProjectiles() {
 }
 
 function drawDamageTexts() {
+	ctx.font = "14px Arial";
 	for (var ii = 0; ii < damageText.length; ++ii) {
 		var text = String(damageText[ii].text);
 		var textSize = ctx.measureText(text);
