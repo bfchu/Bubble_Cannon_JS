@@ -17,6 +17,7 @@
 	- make tanks more 'blob-like'
 	- give tanks cute faces ^-^
 	- make terrain more interesting with 'fractal lines'
+	- make the game display damage numbers
 	-
 //
 */
@@ -336,8 +337,8 @@ function buildTerrain(){
 	fractalPoints[fractalPoints.length] = {x:display.width, y:display.height * (2/3)}; //end point
 
 
-	for(var kk = 0; kk < display.width ; kk += terrainChunkWidth ){
-		var xPos = display.width - kk - terrainChunkWidth;
+	for(var kk = 0; kk < display.width - terrainChunkWidth; kk += terrainChunkWidth ){
+		var xPos = kk - terrainChunkWidth;
 
 		for(var ii = 0; ii < fractalPoints.length-1; ++ii){
 			if(fractalPoints[ii+1].x > xPos + terrainChunkWidth){
@@ -352,6 +353,7 @@ function buildTerrain(){
 		var grain = new MObj(xPos, yPos, 0, 0, terrainChunkWidth, sizeY, BROWN);
 		terrain.push(grain);
 	}
+	// terrain[terrain.length - 1] = new MObj(display.width - terrainChunkWidth, fractalPoints[fractalPoints.length-1].y, 0, 0, terrainChunkWidth, display.height/3, BROWN);
 	
 
 	//create a render mask for terrain.
