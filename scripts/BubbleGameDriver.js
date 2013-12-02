@@ -1,7 +1,26 @@
-
-
-
-
+/*//////////////////////////////////////////////////////
+//	Bubble Cannon JS
+//
+//	Brian Chu
+//	CS74.42A Game Programming in Javascript
+//  James Stewart
+//  Fall 2013
+//
+//
+//	TODO:
+	- add disc explosion effects to tank shots
+	- add screen shake when tank shots explode, and when a tank goes off screen
+	- add graphical effects to the tank explosion
+	- add sound effects to everything:
+		-BGM
+		-fireworks
+	- complete score and damage calculations for proximal blasts
+	- make tanks more 'blob-like'
+	- give tanks cute faces ^-^
+	- make terrain more interesting with 'fractal lines'
+	-
+//
+*/
 
 var display = document.getElementById("gameCanvas");
 var ctx = display.getContext("2d");
@@ -11,6 +30,20 @@ var mouseClick = false;
 
 var stageWidth = display.width;
 var stageHeight = display.height * (4/5);
+
+
+//AUDIO
+var numExplosionSFXs = 4;
+var sfx = [];
+sfx[0] = new Howl({urls: ["audio/explosion_single01.mp3", "audio/explosion_single01.mp3"], volume: 0.5});
+sfx[1] = new Howl({urls: ["audio/explosion_single02.mp3", "audio/explosion_single02.mp3"], volume: 0.5});
+sfx[2] = new Howl({urls: ["audio/explosion_single03.mp3", "audio/explosion_single03.mp3"], volume: 0.5});
+sfx[3] = new Howl({urls: ["audio/explosion_single04.mp3", "audio/explosion_single04.mp3"], volume: 0.5});
+sfx[4] = new Howl({urls: ["audio/explosion_big.mp3", "audio/explosion_big.mp3"], volume: 0.5});
+sfx[5] = new Howl({urls: ["audio/bump.mp3", "audio/bump.mp3"], volume: 0.5});
+sfx[6] = new Howl({urls: ["audio/shot.mp3", "audio/shot.mp3"], volume: 0.5});
+
+
 
 //COLORS
 const ROYAL_BLUE = "hsla(243, 69%, 38%, 1)";
@@ -48,6 +81,7 @@ var particleTestTimer = 1200;
 
 var canSpawnParticlesTest = false;
 
+var discs = [];
 var lines = [];
 var powerBar = {};
 
@@ -100,7 +134,10 @@ function MObj(x,y,deltaX,deltaY,sizeX,sizeY,color){
 	}
 	
 	this.isIntersecting = function(otherThing) {
-		return !( (otherThing.xPos >= this.getRight()) || (otherThing.getRight() <= this.xPos) || (otherThing.yPos >= this.getBottom()) || (otherThing.getBottom() <= this.yPos) ); 
+		return !( (otherThing.xPos >= this.getRight()) ||
+				  (otherThing.getRight() <= this.xPos) || 
+				  (otherThing.yPos >= this.getBottom()) || 
+				  (otherThing.getBottom() <= this.yPos) ); 
 	}
 
 	this.intersectsTerrain = function(){
@@ -145,6 +182,7 @@ function Tank(x,y,deltaX,deltaY,color){
 	this.score = 0;
 	this.damage = 1;
 	this.isAlive = true;
+	this.isSeated = false;
 	this.currentGun = "single";
 	this.gunTip = {};
 	this.angle = 0;
@@ -157,12 +195,25 @@ function Tank(x,y,deltaX,deltaY,color){
 		var missile = new MObj(this.gunTip.x - missileSize/2, this.gunTip.y - missileSize/2, deltaX, deltaY, missileSize, missileSize, this.solid.color);
 		missile.blastForce = 10;
 		missile.blastRadius = 96;
+		missile.sfx = getRandomExplosionSFX();
 		projectiles.push(missile);
+
+		sfx[6].play();
 
 		var waitTimeMS = Math.min(Math.abs(turnDelay * this.power/10), 1800);
 		console.log("In Tank.fire(): waitTimeMS: " + waitTimeMS + "ms");
 		gameWaiting = true;
 		window.setTimeout( function() {gameWaiting = false;}, waitTimeMS);
+	}
+
+	this.reSeat = function(){
+		for(var ii = 0; ii < terrain.length; ++ii){
+			if(this.solid.isIntersecting(terrain[ii])){
+				var overlap = this.solid.getBottom() - terrain[ii].yPos;
+				this.solid.yPos -= overlap;
+			}
+		}
+		this.isSeated = true;
 	}
 
 	this.impulse = function(proximity, force, source){ //force is a scalar, the source needs {xPos: , yPos: , blastRadius: }.
@@ -185,11 +236,10 @@ function Tank(x,y,deltaX,deltaY,color){
 		}
 
 		//increase vectors based on Tank's impulse resistance.
-
 		forceV.x *= this.damage/250;
 
-
 		//apply acceleration based on tank's current distance from the ground.
+		this.isSeated = false;
 		this.solid.deltaX += forceV.x;
 		if(forceV.y > 0){
 			this.solid.deltaY -= forceV.y;
@@ -203,6 +253,7 @@ function Tank(x,y,deltaX,deltaY,color){
 	this.explode = function(){
 		//createExplosion(this, 200, true);
 		this.isAlive = false;
+		sfx[4].play();
 
 		this.solid.xPos = null;
 		this.solid.yPos = null;
@@ -264,6 +315,10 @@ function incrementAlpha(hsLine, alpha){
 	return newHsla;
 }
 
+
+function getRandomExplosionSFX(){
+	return sfx[utils.getRandomInt(1,numExplosionSFXs) - 1];
+}
 
 //========================================================================================================================
 //WORLD INITIALIZATION
@@ -458,6 +513,7 @@ function single_explode(shot){ //single is the shot type.
 			p2.impulse(distance_p2, shot.blastForce, shot);
 		}
 	}
+	shot.sfx.play();
 	createExplosion(shot, particlesPerBurst, utils.getRandomBool());
 }
 
@@ -465,10 +521,12 @@ function single_explode(shot){ //single is the shot type.
 function updatePlayer(player){
 	player.solid.updatePhysics();
 	
-	if(player.solid.intersectsTerrain()){
+	if(player.solid.intersectsTerrain() && !player.isSeated){
+		player.reSeat();
+		sfx[5].play();
 		player.solid.deltaY = 0;
 		player.solid.deltaX = 0;
-	} else{
+	} else if(!player.isSeated){
 		player.solid.deltaY += tankGravity;
 	}
 
@@ -538,6 +596,7 @@ function drawFrame(){
 	clearDisplay();
 	drawBackdrop();
 
+	//TODO: draw player tanks as 'jelly' blobs.
 	if(p1.isAlive){
 		p1.solid.draw();
 	}
@@ -571,14 +630,14 @@ function drawGUI(){
 
 
 	ctx.fillStyle = "#FFFFFF";
-
-	ctx.fillText("FIRE!", display.width/2, display.height * (7/8));
+	ctx.font = "16px Arial";
+	//ctx.fillText("FIRE!", display.width/2 - 32, display.height * (7/8));
 	ctx.fillText("Player 1: " + p1.score, 32, 32);
 	ctx.fillText("Player 2: " + p2.score, display.width - 150, 32);
-	ctx.fillText("ANGLE: " + Math.floor(utils.toDegrees(p1.angle)), display.width/3, display.height * (7/8) - 16 );
-	ctx.fillText("POWER: " + p1.power, display.width/3, display.height * (7/8) + 16 );
-	ctx.fillText("ANGLE: " + Math.floor(utils.toDegrees(p2.angle)), display.width *(2/3) - 24, display.height * (7/8) - 16 );
-	ctx.fillText("POWER: " + p2.power, display.width *(2/3) - 24, display.height * (7/8) + 16 );
+	ctx.fillText("ANGLE: " + Math.floor(utils.toDegrees(p1.angle)), display.width/3 - 32, display.height * (7/8) - 16 );
+	ctx.fillText("POWER: " + p1.power, display.width/3 - 32, display.height * (7/8) + 16 );
+	ctx.fillText("ANGLE: " + Math.floor(utils.toDegrees(p2.angle)), display.width *(2/3) - 56, display.height * (7/8) - 16 );
+	ctx.fillText("POWER: " + p2.power, display.width *(2/3) - 56, display.height * (7/8) + 16 );
 
 	//Draw angle indicator lines
 	for(var ii = 0; ii < lines.length; ii+=2){
@@ -597,6 +656,22 @@ function drawGUI(){
 		ctx.fillStyle = grad;
 		ctx.fillRect(display.width * (2/7), display.height *(3/4), powerBar.x, powerBar.y);
 		powerBar = null;
+	}
+
+	if(gameState == 9){
+		ctx.font = "80px Arial";
+		if(p1.isAlive){
+			ctx.fillStyle = p1.solid.color;
+			var text = "PLAYER 1 WINS!"
+			var textSize = ctx.measureText(text);
+			ctx.fillText(text, display.width/2 - textSize.width/2, display.height/2);
+		} else {
+			ctx.fillStyle = p2.solid.color;
+			var text = "PLAYER 2 WINS!"
+			var textSize = ctx.measureText(text);
+			ctx.fillText(text, display.width/2 - textSize.width/2, display.height/2);
+		}
+
 	}
 }
 
