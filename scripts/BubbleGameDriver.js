@@ -13,7 +13,6 @@
 	- add graphical effects to the tank explosion
 	- add sound effects to everything:
 		-BGM
-		-fireworks
 	- complete score and damage calculations for proximal blasts
 	- make tanks more 'blob-like'
 	- give tanks cute faces ^-^
@@ -42,6 +41,9 @@ sfx[3] = new Howl({urls: ["audio/explosion_single04.mp3", "audio/explosion_singl
 sfx[4] = new Howl({urls: ["audio/explosion_big.mp3", "audio/explosion_big.mp3"], volume: 0.5});
 sfx[5] = new Howl({urls: ["audio/bump.mp3", "audio/bump.mp3"], volume: 0.5});
 sfx[6] = new Howl({urls: ["audio/shot.mp3", "audio/shot.mp3"], volume: 0.5});
+sfx[7] = new Howl({urls: ["audio/fireworks01.mp3", "audio/fireworks01.mp3"], volume: 0.5});
+sfx[8] = new Howl({urls: ["audio/fireworks02.mp3", "audio/fireworks02.mp3"], volume: 0.5});
+sfx[9] = new Howl({urls: ["audio/fireworks03.mp3", "audio/fireworks03.mp3"], volume: 0.5});
 
 
 
@@ -195,7 +197,7 @@ function Tank(x,y,deltaX,deltaY,color){
 		var missile = new MObj(this.gunTip.x - missileSize/2, this.gunTip.y - missileSize/2, deltaX, deltaY, missileSize, missileSize, this.solid.color);
 		missile.blastForce = 10;
 		missile.blastRadius = 96;
-		missile.sfx = getRandomExplosionSFX();
+		missile.sfx = getRandomSFX(0, numExplosionSFXs - 1);
 		projectiles.push(missile);
 
 		sfx[6].play();
@@ -316,8 +318,8 @@ function incrementAlpha(hsLine, alpha){
 }
 
 
-function getRandomExplosionSFX(){
-	return sfx[utils.getRandomInt(1,numExplosionSFXs) - 1];
+function getRandomSFX(min, max){
+	return sfx[utils.getRandomInt(min,max)];
 }
 
 //========================================================================================================================
@@ -453,7 +455,7 @@ function onKeyUp(event){
 		var particleTestSource = new MObj(display.width/2 + utils.getRandomInt(-display.width/2, display.width/2),
 										 display.height * 1/utils.getRandomInt(2,8), 
 										 0, 0, playerHitBoxSize, playerHitBoxSize, SEAFOAM);
-
+		getRandomSFX(7,9).play();
 		createExplosion(particleTestSource);
 		canSpawnParticlesTest = false;
 		window.setTimeout( function() { canSpawnParticlesTest = true; }, utils.getRandomInt(100, particleTestTimer));
