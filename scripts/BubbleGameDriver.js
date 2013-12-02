@@ -87,6 +87,8 @@ var particleTestTimer = 1200;
 var canSpawnParticlesTest = false;
 
 var damageText = [];
+var textFade = 0.01;
+var damageColor = SEAFOAM;
 
 var discs = [];
 var lines = [];
@@ -307,9 +309,15 @@ function createExplosion(explodee, particleDensity, bounce) {
 	}
 }
 
+function addDamageText(damage, xPos, yPos){
+	console.log("in addDamageText(): damage:"  + damage + ", position: x" + xPos + ",y" + yPos);
+	var dmgTxt = new MObj(xPos, yPos, 0, -0.5, 0, 0, damageColor);
+	dmgTxt.text = damage;
+	dmgTxt.alpha = 1.0;
+	damageText.push(dmgTxt);
+}
 
-
-function incrementAlpha(hsLine, alpha){
+function setAlpha(hsLine, alpha){
 	//take apart the HSLA string representing the color and change the alpha value to the given alpha. return the reconstructed string
 	var newHsla = "";
 	var values = hsLine.split("("); //clean off the elements of the string that are not the desired HSLA values
@@ -469,6 +477,7 @@ function onKeyUp(event){
 	updatePlayer(p2);
 	updateProjectiles();
 	updateParticles();
+	updateDamageText();
 
 	drawFrame();
 })();
@@ -500,11 +509,13 @@ function single_explode(shot){ //single is the shot type.
 		p2.score += 100;
 		p1.damage += 100;
 		p1.impulse(0, shot.blastForce, shot);
+		addDamageText(100, p1.solid.xPos, p1.solid.yPos);
 	} 
 	if(shot.isIntersecting(p2.solid)){
 		p1.score += 100;
 		p2.damage += 100;
 		p2.impulse(0, shot.blastForce, shot);
+		addDamageText(100, p2.solid.xPos, p2.solid.yPos);
 	}
 	if(shot.intersectsTerrain()){
 		//TODO: measure distance from the explosion to the nearest tank(s) and deal score damage and physics appropriately.
@@ -573,7 +584,7 @@ function updateParticles() {
 		particles[i].deltaY += particleGravity;
 		particles[i].alpha -= particleFade;
 
-		particles[i].color = incrementAlpha(particles[i].color, particles[i].alpha);
+		particles[i].color = setAlpha(particles[i].color, particles[i].alpha);
 
 		if(particles[i].bounce != null){
 			if(particles[i].intersectsTerrain()){
@@ -595,8 +606,18 @@ function updateParticles() {
 }
 
 
+
 function updateDamageText(){
-	
+	for (var ii = damageText.length - 1; ii >= 0; --ii) {
+		damageText[ii].updatePhysics();
+
+		damageText[ii].alpha -= textFade;
+		setAlpha(damageText[ii].color, damageText[ii].alpha);
+
+		if (damageText[ii].yPos < 0 || damageText[ii].alpha <= 0) {
+			damageText.splice(ii, 1);
+		}
+	}
 }
 
 //=======================================================================================
@@ -618,6 +639,7 @@ function drawFrame(){
 	drawParticles();
 	drawTerrain();
 	drawGUI();
+	drawDamageTexts();
 }
 
 
@@ -697,6 +719,16 @@ function drawParticles() {
 function drawProjectiles() {
 	for (var i = 0; i < projectiles.length; ++i) {
 		projectiles[i].draw();
+	}
+}
+
+function drawDamageTexts() {
+	for (var ii = 0; ii < damageText.length; ++ii) {
+		var text = String(damageText[ii].text);
+		var textSize = ctx.measureText(text);
+		console.log("in drawDamageTexts(): text: " + text + ", size:" + textSize.width);
+		ctx.fillStyle = damageText[ii].color;
+		ctx.fillText(text, damageText[ii].xPos - textSize.width/2, damageText[ii].yPos + 24);
 	}
 }
 
