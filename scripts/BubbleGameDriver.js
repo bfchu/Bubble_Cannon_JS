@@ -18,7 +18,14 @@
 	- give tanks cute faces ^-^
 	- make terrain more interesting with 'fractal lines'
 	- make the game display damage numbers
-	-
+	- high score board
+	- GUI controls:
+		- music, sfx on-off button
+		- angle, power +/- buttons
+		- Fire button.
+	- indication of who's turn it is.
+	- make the render mask of the terrain reflect the 'sticks' that are the back end.  Related to destructible terrain.
+	
 //
 */
 
@@ -87,9 +94,10 @@ var particleTestTimer = 1200;
 var canSpawnParticlesTest = false;
 
 var damageText = [];
-var textFade = 0.01;
+var textFade = 0.005;
 var damageColor = SEAFOAM;
 var directHitVal = 100;
+var tankMass = 250; 
 
 var discs = [];
 var lines = [];
@@ -173,12 +181,7 @@ function MObj(x,y,deltaX,deltaY,sizeX,sizeY,color){
 	}
 
 	this.distanceTo = function(target){
-		var center = {x: this.xPos + this.sizeX/2, y: this.yPos + this.sizeY/2};
-		var distanceX = (target.xPos - center.x);
-		var distanceY = (target.yPos - center.y);
-		var magnitude = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
-
-		return magnitude;
+		return getDistance(this, target);
 	}
 }
 
@@ -229,11 +232,10 @@ function Tank(x,y,deltaX,deltaY,color){
 	this.impulse = function(proximity, force, source){ //force is a scalar, the source needs {xPos: , yPos: , blastRadius: }.
 		//get component vectors and unit vector.
 		//if( this.solid.xPos >= source.xPos){
-			var distX = ( (this.solid.xPos + this.size/2) - (source.xPos + source.sizeX) );
-		// }	else {
-		// 	var distX = ( (source.xPos + source.sizeX) - (this.solid.xPos + this.size/2) );
-		// }
-		var distY = Math.abs( (this.solid.yPos + this.size/2) - (source.yPos + source.sizeY) );
+		this.center = {x:(this.solid.xPos + this.size/2), y: (this.solid.yPos + this.size/2)};
+		source.center = {x: (source.xPos + source.sizeX/2), y: (source.yPos + source.sizeY/2)};
+		var distX = (this.center.x - source.center.x);
+		var distY = Math.abs( this.center.y - source.center.y );
 		var magnitude = Math.sqrt(distX*distX + distY*distY);
 		var unitV = {x: distX/magnitude, y: distY/magnitude};
 		var forceV = {x: unitV.x * force, y: unitV.y * force};
@@ -246,7 +248,7 @@ function Tank(x,y,deltaX,deltaY,color){
 		}
 
 		//increase vectors based on Tank's impulse resistance.
-		forceV.x *= this.damage/250;
+		forceV.x *= this.damage/tankMass;
 
 		//apply acceleration based on tank's current distance from the ground.
 		this.isSeated = false;
@@ -336,12 +338,20 @@ function getRandomSFX(min, max){
 	return sfx[utils.getRandomInt(min,max)];
 }
 
+function getDistance(mobjA, mobjB){
+	mobjA.center = {x:(mobjA.xPos + mobjA.sizeX/2),  y: (mobjA.yPos + mobjA.sizeX/2)};
+	mobjB.center = {x:(mobjB.xPos + mobjB.sizeX/2), y: (mobjB.yPos + mobjB.sizeY/2)};
+	var distX = (mobjA.center.x - mobjB.center.x);
+	var distY = Math.abs( mobjA.center.y - mobjB.center.y );
+	var magnitude = Math.sqrt(distX*distX + distY*distY);
+	return magnitude;
+}
+
 //========================================================================================================================
 //WORLD INITIALIZATION
 
 function buildTerrain(){
 	fractalPoints[0] = {x:0, y:display.height * (2/3)}; //start point
-	//TODO: fix bug where the last point sometimes goes off the edge of the screen.
 	for(var ii = 0; ii < terrainComplexity; ++ii){
 		fractalPoints[ii+1] = {x: fractalPoints[ii].x + utils.getRandomInt(display.width/10, display.width/terrainComplexity), 
 							 y: fractalPoints[ii].y + utils.getRandomInt(-terrainComplexity, terrainComplexity) * 16};
@@ -519,21 +529,34 @@ function single_explode(shot){ //single is the shot type.
 		addDamageText(directHitVal, p2.solid.xPos, p2.solid.yPos);
 	}
 	if(shot.intersectsTerrain()){
-		//TODO: measure distance from the explosion to the nearest tank(s) and deal score damage and physics appropriately.
 		var distance_p1 = shot.distanceTo(p1.solid);
 		var distance_p2 = shot.distanceTo(p2.solid);
-
+		//console.log("in single_explode(): distance_p1:" + distance_p1 + ", distance_p2: " + distance_p2);
 		if(distance_p1 <= shot.blastRadius){
+			var dmg = getDamage(distance_p1, shot.blastRadius, directHitVal);
+			p2.score += dmg;
+			p1.damage += dmg;
 			p1.impulse(distance_p1, shot.blastForce, shot);
+			addDamageText(dmg, p1.solid.xPos, p1.solid.yPos);
 		}
 		if(distance_p2 <= shot.blastRadius){
+			var dmg = getDamage(distance_p2, shot.blastRadius, directHitVal);
+			p1.score += dmg;
+			p2.damage += dmg;
 			p2.impulse(distance_p2, shot.blastForce, shot);
+			addDamageText(dmg, p2.solid.xPos, p2.solid.yPos);
 		}
 	}
 	shot.sfx.play();
 	createExplosion(shot, particlesPerBurst, utils.getRandomBool());
 }
 
+function getDamage(distance, radius, impact){
+	var proximity = distance - playerHitBoxSize;
+	var ratio = (radius - proximity)/radius;
+	var dmg = Math.floor(impact * ratio);
+	return dmg;
+}
 
 function updatePlayer(player){
 	player.solid.updatePhysics();
@@ -613,7 +636,7 @@ function updateDamageText(){
 		damageText[ii].updatePhysics();
 
 		damageText[ii].alpha -= textFade;
-		setAlpha(damageText[ii].color, damageText[ii].alpha);
+		damageText[ii].color = setAlpha(damageText[ii].color, damageText[ii].alpha);
 
 		if (damageText[ii].yPos < 0 || damageText[ii].alpha <= 0) {
 			damageText.splice(ii, 1);
@@ -628,7 +651,6 @@ function drawFrame(){
 	clearDisplay();
 	drawBackdrop();
 
-	//TODO: draw player tanks as 'jelly' blobs.
 	if(p1.isAlive){
 		p1.solid.draw();
 	}
@@ -658,10 +680,6 @@ function drawBackdrop(){
 
 
 function drawGUI(){
-
-	//TODO: ctx.fillRect(); // Fire button
-
-
 	ctx.fillStyle = "#FFFFFF";
 	ctx.font = "16px Arial";
 	//ctx.fillText("FIRE!", display.width/2 - 32, display.height * (7/8));
@@ -728,7 +746,7 @@ function drawDamageTexts() {
 	for (var ii = 0; ii < damageText.length; ++ii) {
 		var text = String(damageText[ii].text);
 		var textSize = ctx.measureText(text);
-		console.log("in drawDamageTexts(): text: " + text + ", size:" + textSize.width);
+		//console.log("in drawDamageTexts(): text: " + text + ", size:" + textSize.width);
 		ctx.fillStyle = damageText[ii].color;
 		ctx.fillText(text, damageText[ii].xPos - textSize.width/2, damageText[ii].yPos + 24);
 	}
