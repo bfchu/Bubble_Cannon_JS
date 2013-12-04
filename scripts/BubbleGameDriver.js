@@ -525,17 +525,8 @@ function single_explode(shot){ //single is the shot type.
 		p1.damage += directHitVal;
 		p1.impulse(shot);
 		addDamageText(directHitVal, p1.solid.xPos, p1.solid.yPos);
-	}
-	if(shot.isIntersecting(p2.solid)){
-		p1.score += directHitVal;
-		p2.damage += directHitVal;
-		p2.impulse(shot);
-		addDamageText(directHitVal, p2.solid.xPos, p2.solid.yPos);
-	}
-	if(shot.intersectsTerrain()){
+	} else {
 		var distance_p1 = shot.distanceTo(p1.solid);
-		var distance_p2 = shot.distanceTo(p2.solid);
-		//console.log("in single_explode(): distance_p1:" + distance_p1 + ", distance_p2: " + distance_p2);
 		if(distance_p1 <= shot.blastRadius){
 			var dmg = getDamage(distance_p1, shot.blastRadius, directHitVal);
 			p2.score += dmg;
@@ -543,6 +534,15 @@ function single_explode(shot){ //single is the shot type.
 			p1.impulse(shot);
 			addDamageText(dmg, p1.solid.xPos, p1.solid.yPos);
 		}
+	}
+	
+	if(shot.isIntersecting(p2.solid)){
+		p1.score += directHitVal;
+		p2.damage += directHitVal;
+		p2.impulse(shot);
+		addDamageText(directHitVal, p2.solid.xPos, p2.solid.yPos);
+	} else {
+		var distance_p2 = shot.distanceTo(p2.solid);
 		if(distance_p2 <= shot.blastRadius){
 			var dmg = getDamage(distance_p2, shot.blastRadius, directHitVal);
 			p1.score += dmg;
@@ -551,6 +551,7 @@ function single_explode(shot){ //single is the shot type.
 			addDamageText(dmg, p2.solid.xPos, p2.solid.yPos);
 		}
 	}
+	
 	shot.sfx.play();
 	createExplosion(shot, particlesPerBurst, utils.getRandomBool());
 }
