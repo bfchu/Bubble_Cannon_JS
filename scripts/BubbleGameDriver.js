@@ -13,10 +13,12 @@
 	- add graphical effects to the tank explosion
 	- add sound effects to everything:
 		-BGM
-	- complete score and damage calculations for proximal blasts
 	- make tanks more 'blob-like'
-	- give tanks cute faces ^-^
-	- make terrain more interesting with 'fractal lines'
+		- give tanks cute faces ^-^
+		- make tank's eyes look in the direction their gun is pointing.
+	- make terrain destructible
+		- remove height from terrain chunks and area from the mask, then redraw the mask
+		- make a test script that can draw the actual terrain chunks over the terrain in an obnoxious color while a certain key is held.
 	- make the game display damage numbers
 	- high score board
 	- GUI controls:
@@ -25,6 +27,7 @@
 		- Fire button.
 	- indication of who's turn it is.
 	- make the render mask of the terrain reflect the 'sticks' that are the back end.  Related to destructible terrain.
+
 	
 //
 */
@@ -64,15 +67,16 @@ const SEAFOAM = "hsla(150, 77%, 50%, 1)";
 const DARK_BROWN = "hsla(23, 60%, 22%, 1)";
 const BROWN = "hsla(23, 60%, 47%, 1)";
 
-var playerHitBoxSize = 32;
+var playerHitBoxSize = 32; //32
+var missileSize = 8;
+var gunLength = playerHitBoxSize + missileSize + 2;
+
 var tankGravity = 0.2;
-var gunLength = 40;
 var p1 = new Tank((display.width/4), (display.height/4), 0,0, RED);
 var p2 = new Tank((display.width * (3/4)), (display.height/4), 0,0, VIOLET);
 
 
 var projectiles = [];
-var missileSize = 8;
 var missileGravity = 0.16;
 
 var terrain = [];
@@ -229,23 +233,25 @@ function Tank(x,y,deltaX,deltaY,color){
 		this.isSeated = true;
 	}
 
-	this.impulse = function(proximity, force, source){ //force is a scalar, the source needs {xPos: , yPos: , blastRadius: }.
+	this.impulse = function(source){
 		//get component vectors and unit vector.
-		//if( this.solid.xPos >= source.xPos){
 		this.center = {x:(this.solid.xPos + this.size/2), y: (this.solid.yPos + this.size/2)};
 		source.center = {x: (source.xPos + source.sizeX/2), y: (source.yPos + source.sizeY/2)};
 		var distX = (this.center.x - source.center.x);
 		var distY = Math.abs( this.center.y - source.center.y );
 		var magnitude = Math.sqrt(distX*distX + distY*distY);
 		var unitV = {x: distX/magnitude, y: distY/magnitude};
-		var forceV = {x: unitV.x * force, y: unitV.y * force};
+		var proximity = magnitude - playerHitBoxSize;
+		var ratio = (source.blastRadius - proximity)/source.blastRadius;
+		var impact = Math.min(Math.floor(source.blastForce * ratio), source.blastForce);
+		var forceV = {x: unitV.x * impact, y: unitV.y * impact};
 
 		//reduce vector based on distance.
-		if(proximity > 0 &&
-			proximity <= source.blastRadius){
-			forceV.x -= forceV.x * (proximity/source.blastRadius); // multiply forceV by the percentage of the blastRadius that proximity is.
-			forceV.y -= forceV.y * (proximity/source.blastRadius); 
-		}
+		// if(proximity > 0 &&
+		//    proximity <= source.blastRadius){
+		// 	forceV.x -= forceV.x * (proximity/source.blastRadius); // multiply forceV by the percentage of the blastRadius that proximity is.
+		// 	forceV.y -= forceV.y * (proximity/source.blastRadius); 
+		// }
 
 		//increase vectors based on Tank's impulse resistance.
 		forceV.x *= this.damage/tankMass;
@@ -516,16 +522,17 @@ function aimMode(player){
 
 
 function single_explode(shot){ //single is the shot type.
+	//TODO: Change this function to loop over both players, checking each for direc or proximal hits.  this is to eliminate a bug where the explosion can only effect one of the players, even if they are inside eachother.  also could resolve bug where a player can get hit by both a direct hit and a proximal hit, resulting in massive acceleration
 	if(shot.isIntersecting(p1.solid)){
 		p2.score += directHitVal;
 		p1.damage += directHitVal;
-		p1.impulse(0, shot.blastForce, shot);
+		p1.impulse(shot);
 		addDamageText(directHitVal, p1.solid.xPos, p1.solid.yPos);
-	} 
+	}
 	if(shot.isIntersecting(p2.solid)){
 		p1.score += directHitVal;
 		p2.damage += directHitVal;
-		p2.impulse(0, shot.blastForce, shot);
+		p2.impulse(shot);
 		addDamageText(directHitVal, p2.solid.xPos, p2.solid.yPos);
 	}
 	if(shot.intersectsTerrain()){
@@ -536,14 +543,14 @@ function single_explode(shot){ //single is the shot type.
 			var dmg = getDamage(distance_p1, shot.blastRadius, directHitVal);
 			p2.score += dmg;
 			p1.damage += dmg;
-			p1.impulse(distance_p1, shot.blastForce, shot);
+			p1.impulse(shot);
 			addDamageText(dmg, p1.solid.xPos, p1.solid.yPos);
 		}
 		if(distance_p2 <= shot.blastRadius){
 			var dmg = getDamage(distance_p2, shot.blastRadius, directHitVal);
 			p1.score += dmg;
 			p2.damage += dmg;
-			p2.impulse(distance_p2, shot.blastForce, shot);
+			p2.impulse(shot);
 			addDamageText(dmg, p2.solid.xPos, p2.solid.yPos);
 		}
 	}
@@ -554,7 +561,7 @@ function single_explode(shot){ //single is the shot type.
 function getDamage(distance, radius, impact){
 	var proximity = distance - playerHitBoxSize;
 	var ratio = (radius - proximity)/radius;
-	var dmg = Math.floor(impact * ratio);
+	var dmg = Math.min(Math.floor(impact * ratio), impact);
 	return dmg;
 }
 
