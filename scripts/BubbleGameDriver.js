@@ -369,10 +369,10 @@ function buildTerrain(){
 		var xPos = kk - terrainChunkWidth;
 
 		for(var ii = 0; ii < fractalPoints.length-1; ++ii){
-			if(fractalPoints[ii+1].x > xPos + terrainChunkWidth){
+			if(fractalPoints[ii+1].x > xPos - terrainChunkWidth/2){
 				var slope = (fractalPoints[ii].y - fractalPoints[ii+1].y)/(fractalPoints[ii+1].x - fractalPoints[ii].x);
 				var leftIntercept = fractalPoints[ii].y + fractalPoints[ii].x * slope;
-				var sizeY = display.height - Math.max(leftIntercept - xPos * slope, 0);
+				var sizeY = display.height - Math.max(leftIntercept - (xPos + terrainChunkWidth/2) * slope, 0);
 				break;
 			}
 		}
