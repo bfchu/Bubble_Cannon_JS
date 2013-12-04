@@ -86,7 +86,7 @@ var terrain = [];
 var terrainFallSpeed = .1;
 var fractalPoints = []; // fractalPoints.length will be two larger tan terrainComplexity.
 var terrainMask = [];
-var terrainChunkWidth = 4; //4;
+var terrainChunkWidth = 2; //4;
 var terrainComplexity = 6;
 var displayChunks = false;
 
@@ -393,27 +393,34 @@ function buildTerrain(){
 }
 
 function destroyTerrain(shot){
+	var craterChunkwidth = 2;
+	var craterDepth = 1/8;
 	var crater = [];
 	var craterRadius = shot.blastRadius/2;
+
 	for(var ii = 0; ii < 2*craterRadius; ++ii){
 		var ratio = ii / craterRadius;
 		if(ratio > 1){
-			var theta = Math.asin((ii - 2*(ii - craterRadius)) / craterRadius);
+			var theta = Math.acos((ii - 2*(ii - craterRadius)) / craterRadius);
 		} else {
-			var theta = Math.asin(ii / craterRadius);
+			var theta = Math.acos(ii / craterRadius);
 		}
-		var height = craterRadius * Math.sin(theta);
+		var height = (craterRadius * Math.sin(theta)) * craterDepth;
 		var x = shot.xPos - craterRadius + ii;
-		var y = height + shot.xPos;
+		var y = height + shot.yPos;
 		console.log("In destroyTerrain(): theta:" + utils.toDegrees(theta) + ", height:" + height + ", x:" + x + ", y:" + y);
 
-		crater[ii] = new MObj(x, y, 0, 0, 2, height*2, "black");
+		crater[ii] = new MObj(x, y, 0, 0, craterChunkwidth, height*2, "black");
 	}
 
 	for(var ii = 0; ii < terrain.length; ++ii){
 		for(var kk = 0; kk < crater.length; ++kk){
 			if(crater[kk].isIntersecting(terrain[ii])){
-				var remove = Math.max((crater[kk].yPos + crater[kk].sizeY) - terrain[ii].yPos,0);
+				if(crater[kk].yPos <= terrain[ii].yPos){
+					var remove = Math.max((crater[kk].yPos + crater[kk].sizeY) - terrain[ii].yPos,0);
+				} else{
+					var remove = Math.max(crater[kk].sizeY,0);
+				}
 				terrain[ii].yPos += remove;
 				terrain[ii].sizeY -= remove;
 			}
@@ -589,7 +596,7 @@ function single_explode(shot){ //single is the shot type.  Other weapons could b
 	
 	shot.sfx.play();
 	createExplosion(shot, particlesPerBurst, utils.getRandomBool());
-	//destroyTerrain(shot);
+	destroyTerrain(shot);
 }
 
 function getDamage(distance, radius, impact){
