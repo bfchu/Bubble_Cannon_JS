@@ -86,7 +86,7 @@ var terrain = [];
 var terrainFallSpeed = .1;
 var fractalPoints = []; // fractalPoints.length will be two larger tan terrainComplexity.
 var terrainMask = [];
-var terrainChunkWidth = 4;
+var terrainChunkWidth = 4; //4;
 var terrainComplexity = 6;
 var displayChunks = false;
 
@@ -365,7 +365,7 @@ function buildTerrain(){
 	}
 	fractalPoints[fractalPoints.length] = {x:display.width, y:display.height * (2/3)}; //end point
 
-	for(var kk = 0; kk < display.width; kk += terrainChunkWidth ){
+	for(var kk = 0; kk <= display.width; kk += terrainChunkWidth ){
 		var xPos = kk - terrainChunkWidth;
 
 		for(var ii = 0; ii < fractalPoints.length-1; ++ii){
@@ -382,7 +382,6 @@ function buildTerrain(){
 		terrain.push(grain);
 	}
 	
-
 	//create a render mask for terrain.
 	//TODO: make the render mask of the terrain reflect the 'sticks' that are the back end.
 	terrainMask[0] = {x:display.width, y: display.height};
@@ -391,8 +390,35 @@ function buildTerrain(){
 	for(var ii = 0; ii < fractalPoints.length; ++ii){
 		terrainMask[ii + 2] = fractalPoints[ii];
 	}
+}
 
+function destroyTerrain(shot){
+	var crater = [];
+	var craterRadius = shot.blastRadius/2;
+	for(var ii = 0; ii < 2*craterRadius; ++ii){
+		var ratio = ii / craterRadius;
+		if(ratio > 1){
+			var theta = Math.asin((ii - 2*(ii - craterRadius)) / craterRadius);
+		} else {
+			var theta = Math.asin(ii / craterRadius);
+		}
+		var height = craterRadius * Math.sin(theta);
+		var x = shot.xPos - craterRadius + ii;
+		var y = height + shot.xPos;
+		console.log("In destroyTerrain(): theta:" + utils.toDegrees(theta) + ", height:" + height + ", x:" + x + ", y:" + y);
 
+		crater[ii] = new MObj(x, y, 0, 0, 2, height*2, "black");
+	}
+
+	for(var ii = 0; ii < terrain.length; ++ii){
+		for(var kk = 0; kk < crater.length; ++kk){
+			if(crater[kk].isIntersecting(terrain[ii])){
+				var remove = Math.max((crater[kk].yPos + crater[kk].sizeY) - terrain[ii].yPos,0);
+				terrain[ii].yPos += remove;
+				terrain[ii].sizeY -= remove;
+			}
+		}
+	}
 }
 
 function setGUI(player){
@@ -563,6 +589,7 @@ function single_explode(shot){ //single is the shot type.  Other weapons could b
 	
 	shot.sfx.play();
 	createExplosion(shot, particlesPerBurst, utils.getRandomBool());
+	//destroyTerrain(shot);
 }
 
 function getDamage(distance, radius, impact){
