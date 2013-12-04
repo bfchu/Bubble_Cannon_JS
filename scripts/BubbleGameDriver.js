@@ -246,23 +246,20 @@ function Tank(x,y,deltaX,deltaY,color){
 		var impact = Math.min(Math.floor(source.blastForce * ratio), source.blastForce);
 		var forceV = {x: unitV.x * impact, y: unitV.y * impact};
 
-		//reduce vector based on distance.
-		// if(proximity > 0 &&
-		//    proximity <= source.blastRadius){
-		// 	forceV.x -= forceV.x * (proximity/source.blastRadius); // multiply forceV by the percentage of the blastRadius that proximity is.
-		// 	forceV.y -= forceV.y * (proximity/source.blastRadius); 
-		// }
-
 		//increase vectors based on Tank's impulse resistance.
 		forceV.x *= this.damage/tankMass;
 
 		//apply acceleration based on tank's current distance from the ground.
-		this.isSeated = false;
 		this.solid.deltaX += forceV.x;
-		if(forceV.y > 0){
+		if(this.isSeated){
+			this.isSeated = false;
+			if(forceV.y > 0){
+				this.solid.deltaY -= forceV.y;
+			} else{
+				this.solid.deltaY += forceV.y;
+			}
+		} else {
 			this.solid.deltaY -= forceV.y;
-		} else{
-			this.solid.deltaY += forceV.y;
 		}
 
 		console.log("in Tank.impulse(): forceX: " + forceV.x + ", forceY: " + forceV.y);
