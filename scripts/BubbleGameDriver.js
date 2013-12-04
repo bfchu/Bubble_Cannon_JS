@@ -394,23 +394,17 @@ function buildTerrain(){
 
 function destroyTerrain(shot){
 	var craterChunkwidth = 2;
-	var craterDepth = 1/8;
+	var craterDepth = 1/4;
 	var crater = [];
-	var craterRadius = shot.blastRadius/2;
+	var craterRadius = shot.blastRadius/4;
 
-	for(var ii = 0; ii < 2*craterRadius; ++ii){
-		var ratio = ii / craterRadius;
-		if(ratio > 1){
-			var theta = Math.acos((ii - 2*(ii - craterRadius)) / craterRadius);
-		} else {
-			var theta = Math.acos(ii / craterRadius);
-		}
-		var height = (craterRadius * Math.sin(theta)) * craterDepth;
-		var x = shot.xPos - craterRadius + ii;
+	for(var ii = -craterRadius; ii < craterRadius; ++ii){
+		var height = craterDepth * Math.sqrt(craterRadius * craterRadius - ii*ii)  //(craterRadius * Math.cos(theta)) * craterDepth;
+		var x = shot.xPos + ii * craterChunkwidth;
 		var y = height + shot.yPos;
-		console.log("In destroyTerrain(): theta:" + utils.toDegrees(theta) + ", height:" + height + ", x:" + x + ", y:" + y);
+		console.log("In destroyTerrain(): height:" + height + ", x:" + x + ", y:" + y);
 
-		crater[ii] = new MObj(x, y, 0, 0, craterChunkwidth, height*2, "black");
+		crater[ii + craterRadius] = new MObj(x, y, 0, 0, craterChunkwidth, height*2, "black");
 	}
 
 	for(var ii = 0; ii < terrain.length; ++ii){
@@ -427,6 +421,7 @@ function destroyTerrain(shot){
 		}
 	}
 }
+
 
 function setGUI(player){
 
