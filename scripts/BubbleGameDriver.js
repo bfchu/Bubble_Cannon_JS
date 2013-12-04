@@ -59,6 +59,9 @@ sfx[9] = new Howl({urls: ["audio/fireworks03.mp3", "audio/fireworks03.mp3"], vol
 
 
 //COLORS
+const LIME = "hsla(117, 100%, 50%, 1)";
+const LIME_50 = "hsla(117, 100%, 50%, .5)";
+const LIME_25 = "hsla(117, 100%, 50%, .25)";
 const ROYAL_BLUE = "hsla(243, 69%, 38%, 1)";
 const RED = "hsla(0, 72%, 50%, 1)";
 const VIOLET = "hsla(279, 72%, 48%, 1)";
@@ -85,6 +88,7 @@ var fractalPoints = []; // fractalPoints.length will be two larger tan terrainCo
 var terrainMask = [];
 var terrainChunkWidth = 4;
 var terrainComplexity = 6;
+var displayChunks = false;
 
 var particles = [];
 var particleSize = 5;
@@ -361,7 +365,7 @@ function buildTerrain(){
 	}
 	fractalPoints[fractalPoints.length] = {x:display.width, y:display.height * (2/3)}; //end point
 
-	for(var kk = 0; kk < display.width - terrainChunkWidth; kk += terrainChunkWidth ){
+	for(var kk = 0; kk < display.width; kk += terrainChunkWidth ){
 		var xPos = kk - terrainChunkWidth;
 
 		for(var ii = 0; ii < fractalPoints.length-1; ++ii){
@@ -374,7 +378,7 @@ function buildTerrain(){
 		}
 		var yPos =  display.height - sizeY;
 
-		var grain = new MObj(xPos, yPos, 0, 0, terrainChunkWidth, sizeY, BROWN);
+		var grain = new MObj(xPos, yPos, 0, 0, terrainChunkWidth, sizeY, LIME_25);
 		terrain.push(grain);
 	}
 	
@@ -412,7 +416,13 @@ function onMouseUp(event) {
 }
 
 function onKeyDown(event){
-
+	switch(event.keyCode){
+		case 32:
+			displayChunks = !displayChunks; 
+			break;
+		default:
+			break;
+	}
 }
 
 function onKeyUp(event){
@@ -518,8 +528,7 @@ function aimMode(player){
 }
 
 
-function single_explode(shot){ //single is the shot type.
-	//TODO: Change this function to loop over both players, checking each for direc or proximal hits.  this is to eliminate a bug where the explosion can only effect one of the players, even if they are inside eachother.  also could resolve bug where a player can get hit by both a direct hit and a proximal hit, resulting in massive acceleration
+function single_explode(shot){ //single is the shot type.  Other weapons could be named such: cluster_bomb(), laser_hit(), napalm_explode(); but most weapons can be defined by spawning explosions in the necessary pattern or random spread using single_explode(), or by creating new projectiles that use single.explode();
 	if(shot.isIntersecting(p1.solid)){
 		p2.score += directHitVal;
 		p1.damage += directHitVal;
@@ -535,7 +544,7 @@ function single_explode(shot){ //single is the shot type.
 			addDamageText(dmg, p1.solid.xPos, p1.solid.yPos);
 		}
 	}
-	
+
 	if(shot.isIntersecting(p2.solid)){
 		p1.score += directHitVal;
 		p2.damage += directHitVal;
@@ -772,6 +781,11 @@ function drawTerrain() {
 
 	ctx.fill();
 
+	if(displayChunks){
+		for (var i = 0; i < terrain.length; ++i) {
+			terrain[i].draw();
+		}
+	}
 }
 
 //@citation: user: Prestaul at http://stackoverflow.com/questions/2142535/how-to-clear-the-canvas-for-redrawing
