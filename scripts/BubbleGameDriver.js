@@ -10,15 +10,14 @@
 //	TODO:
 	- add disc explosion effects to tank shots
 	- add screen shake when tank shots explode, and when a tank goes off screen
-	- add graphical effects to the tank explosion
+	- add a sort of tense 'flinch' vibration when a tank gets hit, then they fly away with impulse.
+	- make player's current damage numbers flash, inflate, change color when they take damage.
+	- add graphical effects to the tank explosion.
 	- add sound effects to everything:
 		-BGM
 	- make tanks more 'blob-like'
 		- give tanks cute faces ^-^
 		- make tank's eyes look in the direction their gun is pointing.
-	- make terrain destructible
-		- remove height from terrain chunks and area from the mask, then redraw the mask
-		- make a test script that can draw the actual terrain chunks over the terrain in an obnoxious color while a certain key is held.
 	- make the game display damage numbers
 	- high score board
 	- GUI controls:
@@ -26,7 +25,6 @@
 		- angle, power +/- buttons
 		- Fire button.
 	- indication of who's turn it is.
-	- make the render mask of the terrain reflect the 'sticks' that are the back end.  Related to destructible terrain.
 
 	
 //
@@ -92,6 +90,7 @@ var terrainComplexity = 6;
 var displayChunks = true;
 var craterChunkwidth = 2;
 var craterDepth = 1/2;
+var terrainSoftness = 1/4;
 
 var particles = [];
 var particleSize = 5;
@@ -398,14 +397,13 @@ function buildTerrain(){
 
 function destroyTerrain(shot){
 	var crater = [];
-	var craterRadius = shot.blastRadius/4;
+	var craterRadius = shot.blastRadius * terrainSoftness;
 
 	for(var ii = -craterRadius; ii < craterRadius; ++ii){
 		var height = craterDepth * Math.sqrt(craterRadius * craterRadius - ii*ii)  //(craterRadius * Math.cos(theta)) * craterDepth;
 		var x = shot.xPos + ii * craterChunkwidth;
 		var y = height + shot.yPos;
-		console.log("In destroyTerrain(): height:" + height + ", x:" + x + ", y:" + y);
-
+		//console.log("In destroyTerrain(): height:" + height + ", x:" + x + ", y:" + y);
 		crater[ii + craterRadius] = new MObj(x, y, 0, 0, craterChunkwidth, height*2, "black");
 	}
 
@@ -434,7 +432,7 @@ function setGUI(player){
 //Event Handlers
 
 function onMouseMove(event) {
-	mousePosition = { x : event.pageX, y : event.pageY };
+	mousePosition = { x: event.pageX, y: event.pageY };
 }
 
 function onMouseDown(event) {
@@ -514,8 +512,7 @@ function onKeyUp(event){
 			break;
 	}
 
-
-	//TESTS:
+	//gameover fireworks
 	if (canSpawnParticlesTest){
 		var particleTestSource = new MObj(display.width/2 + utils.getRandomInt(-display.width/2, display.width/2),
 										 display.height * 1/utils.getRandomInt(2,8), 
@@ -625,18 +622,18 @@ function updatePlayer(player){
 
 
 function updateProjectiles() {
-	for (var i = projectiles.length - 1; i >= 0; --i) {
-		projectiles[i].updatePhysics();
-		projectiles[i].deltaY += missileGravity;
+	for (var ii = projectiles.length - 1; ii >= 0; --ii) {
+		projectiles[ii].updatePhysics();
+		projectiles[ii].deltaY += missileGravity;
 
-		if( projectiles[i].intersectsTerrain() || 
-			projectiles[i].isIntersecting(p1.solid) || 
-			projectiles[i].isIntersecting(p2.solid)  ){
+		if( projectiles[ii].intersectsTerrain() || 
+			projectiles[ii].isIntersecting(p1.solid) || 
+			projectiles[ii].isIntersecting(p2.solid)  ){
 
-			single_explode(projectiles[i]);
-			projectiles.splice(i,1);
-		} else if(projectiles[i].isOffScreen()){
-			projectiles.splice(i,1);
+			single_explode(projectiles[ii]);
+			projectiles.splice(ii,1);
+		} else if(projectiles[ii].isOffScreen()){
+			projectiles.splice(ii,1);
 		}
 
 	}
@@ -734,12 +731,27 @@ function drawGUI(){
 	ctx.fillStyle = "#FFFFFF";
 	ctx.font = "16px Arial";
 	//ctx.fillText("FIRE!", display.width/2 - 32, display.height * (7/8));
-	ctx.fillText("Player 1: " + p1.score, 32, 32);
-	ctx.fillText("Player 2: " + p2.score, display.width - 150, 32);
+
+	//angle and power for both players
 	ctx.fillText("ANGLE: " + Math.floor(utils.toDegrees(p1.angle)), display.width/3 - 32, display.height * (7/8) - 16 );
 	ctx.fillText("POWER: " + p1.power, display.width/3 - 32, display.height * (7/8) + 16 );
 	ctx.fillText("ANGLE: " + Math.floor(utils.toDegrees(p2.angle)), display.width *(2/3) - 56, display.height * (7/8) - 16 );
 	ctx.fillText("POWER: " + p2.power, display.width *(2/3) - 56, display.height * (7/8) + 16 );
+	//player's damage numbers
+	ctx.save();
+	if(p1.damage > tankMass){
+		ctx.fillStyle = RED;
+		ctx.font = "20px Arial";
+	}
+	ctx.fillText("Player 1: " + (p1.damage - 1), 32, 32);
+	ctx.restore();
+	ctx.save();
+	if(p2.damage > tankMass){
+		ctx.fillStyle = RED;
+		ctx.font = "20px Arial";
+	}
+	ctx.fillText("Player 2: " + (p2.damage - 1), display.width - 150, 32);
+	ctx.save();
 
 	//Draw angle indicator lines
 	for(var ii = 0; ii < lines.length; ii+=2){
@@ -760,7 +772,9 @@ function drawGUI(){
 		powerBar = null;
 	}
 
+	//gameover
 	if(gameState == 9){
+		ctx.save();
 		ctx.font = "80px Arial";
 		if(p1.isAlive){
 			ctx.fillStyle = p1.solid.color;
@@ -773,22 +787,22 @@ function drawGUI(){
 			var textSize = ctx.measureText(text);
 			ctx.fillText(text, display.width/2 - textSize.width/2, display.height/2);
 		}
-
+		ctx.restore();
 	}
 }
 
 
 
 function drawParticles() {
-	for (var i = 0; i < particles.length; ++i) {
-		particles[i].draw();
+	for (var ii = 0; ii < particles.length; ++ii) {
+		particles[ii].draw();
 	}
 }
 
 
 function drawProjectiles() {
-	for (var i = 0; i < projectiles.length; ++i) {
-		projectiles[i].draw();
+	for (var ii = 0; ii < projectiles.length; ++ii) {
+		projectiles[ii].draw();
 	}
 }
 
