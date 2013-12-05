@@ -67,6 +67,7 @@ const RED = "hsla(0, 72%, 50%, 1)";
 const VIOLET = "hsla(279, 72%, 48%, 1)";
 const GOLDEN_YELLOW = "hsla(55, 91%, 50%, 1)";
 const SEAFOAM = "hsla(150, 77%, 50%, 1)";
+const DARKER_BROWN = "hsla(23, 51%, 12%, 1)";
 const DARK_BROWN = "hsla(23, 60%, 22%, 1)";
 const BROWN = "hsla(23, 60%, 47%, 1)";
 
@@ -88,7 +89,9 @@ var fractalPoints = []; // fractalPoints.length will be two larger tan terrainCo
 var terrainMask = [];
 var terrainChunkWidth = 2; //4;
 var terrainComplexity = 6;
-var displayChunks = false;
+var displayChunks = true;
+var craterChunkwidth = 2;
+var craterDepth = 1/2;
 
 var particles = [];
 var particleSize = 5;
@@ -393,8 +396,6 @@ function buildTerrain(){
 }
 
 function destroyTerrain(shot){
-	var craterChunkwidth = 2;
-	var craterDepth = 1/4;
 	var crater = [];
 	var craterRadius = shot.blastRadius/4;
 
@@ -644,30 +645,34 @@ function updateProjectiles() {
 
 
 function updateParticles() {
-	for (var i = particles.length - 1; i >= 0; --i) {
-		particles[i].updatePhysics();
+	for (var ii = particles.length - 1; ii >= 0; --ii) {
+		particles[ii].updatePhysics();
 		
 		// add some acceleration from gravity each frame.
-		particles[i].deltaY += particleGravity;
-		particles[i].alpha -= particleFade;
+		particles[ii].deltaY += particleGravity;
+		particles[ii].alpha -= particleFade;
 
-		particles[i].color = setAlpha(particles[i].color, particles[i].alpha);
+		particles[ii].color = setAlpha(particles[ii].color, particles[ii].alpha);
 
-		if(particles[i].bounce != null){
-			if(particles[i].intersectsTerrain()){
-				particles[i].deltaY = -particles[i].deltaY;
+		if(particles[ii].bounce != null){
+			if(particles[ii].intersectsTerrain()){
+				if(particles[ii].deltaY > 0){
+					particles[ii].deltaY = -particles[ii].deltaY;
+				} else {
+					particles[ii].deltaX = -particles[ii].deltaX;
+				}
 			}
 		}
 
 		// remove particles that are no longer on screen.
-		var shouldRemoveParticle = particles[i].isOffScreen();
+		var shouldRemoveParticle = particles[ii].isOffScreen();
 
-		if(particles[i].alpha <= 0){
+		if(particles[ii].alpha <= 0){
 			shouldRemoveParticle = true;
 		}
 		
 		if (shouldRemoveParticle) {
-			particles.splice(i, 1);
+			particles.splice(ii, 1);
 		}	
 	}
 }
@@ -689,10 +694,12 @@ function updateDamageText(){
 
 //=======================================================================================
 //RENDERING
-
+ 
 function drawFrame(){
 	clearDisplay();
+	
 	drawBackdrop();
+	drawTerrainMask();
 
 	if(p1.isAlive){
 		p1.solid.draw();
@@ -701,9 +708,9 @@ function drawFrame(){
 		p2.solid.draw();
 	}
 
-	drawProjectiles();
 	drawParticles();
-	drawTerrain();
+	drawProjectiles();
+	drawTerrainChunks();
 	drawGUI();
 	drawDamageTexts();
 }
@@ -796,9 +803,9 @@ function drawDamageTexts() {
 }
 
 
-function drawTerrain() {
+function drawTerrainMask() {
 	var grad = ctx.createLinearGradient(0,display.height,0,display.height/2);
-	grad.addColorStop(0,DARK_BROWN);
+	grad.addColorStop(0,DARKER_BROWN);
 	grad.addColorStop(1,BROWN);
 	ctx.fillStyle = grad;
 
@@ -809,13 +816,17 @@ function drawTerrain() {
 	};
 
 	ctx.fill();
+}
 
+
+function drawTerrainChunks(){
 	if(displayChunks){
-		for (var i = 0; i < terrain.length; ++i) {
-			terrain[i].draw();
+		for (var ii = 0; ii < terrain.length; ++ii) {
+			terrain[ii].draw();
 		}
 	}
 }
+
 
 //@citation: user: Prestaul at http://stackoverflow.com/questions/2142535/how-to-clear-the-canvas-for-redrawing
 function clearDisplay(){
