@@ -121,7 +121,8 @@ window.addEventListener("mouseup", onMouseUp, false);
 window.addEventListener("mousemove", onMouseMove, false);
 
 
-var turnDelay = 100; //0 to 100 percent
+var turnDelay = 100;
+var maxTurnDelay = 1800;
 var gameWaiting = false;
 var gameState = 0;
 var stateDefinitions = ["gameStart", "p1_Idle", "p1_Aim", "p1_Power", "p1_Fire", "p2_Idle", "p2_Aim", "p2_Power", "p2_Fire,", "gameOver"];
@@ -224,7 +225,7 @@ function Tank(x,y,deltaX,deltaY,color){
 
 		sfx[6].play();
 
-		var waitTimeMS = Math.min(Math.abs(turnDelay * this.power/10), 1800);
+		var waitTimeMS = Math.min(Math.abs(turnDelay * this.power/10), maxTurnDelay);
 		console.log("In Tank.fire(): waitTimeMS: " + waitTimeMS + "ms");
 		gameWaiting = true;
 		window.setTimeout( function() {gameWaiting = false;}, waitTimeMS);
