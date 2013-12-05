@@ -728,6 +728,22 @@ function drawBackdrop(){
 
 
 function drawGUI(){
+	//draw translucent boxes around the player's angle and power readout to indicate whose turn it is.
+	if(gameState >= 1 && gameState < 5){
+		ctx.save();
+		ctx.globalAlpha = .4;
+		ctx.fillStyle = p1.solid.color;
+		ctx.fillRect(display.width/3 - 60, display.height * (7/8) - 56 , 152, 100 );
+		ctx.restore();
+	}
+	if(gameState >= 5 && gameState < 9){
+		ctx.save();
+		ctx.globalAlpha = .4;
+		ctx.fillStyle = p2.solid.color;
+		ctx.fillRect(display.width *(2/3) - 84, display.height * (7/8) - 56 , 152, 100 );
+		ctx.restore();
+	}
+
 	ctx.fillStyle = "#FFFFFF";
 	ctx.font = "16px Arial";
 	//ctx.fillText("FIRE!", display.width/2 - 32, display.height * (7/8));
