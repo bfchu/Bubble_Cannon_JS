@@ -18,15 +18,16 @@
 	- make tanks more 'blob-like'
 		- give tanks cute faces ^-^
 		- make tank's eyes look in the direction their gun is pointing.
-	- make the game display damage numbers
-	- high score board
 	- GUI controls:
 		- music, sfx on-off button
 		- angle, power +/- buttons
 		- Fire button.
-	- indication of who's turn it is.
+	-move the player angle/power indicators to the top of the screen.
 
-	
+	BUGS:
+	- terrain craters sometimes form little spikes or sharp dips in the middle.
+	- terrain sometimes generates with a lethal drop under player 2.
+	- bullet tunneling
 //
 */
 
@@ -43,20 +44,24 @@ var stageHeight = display.height * (4/5);
 //AUDIO
 var numExplosionSFXs = 4;
 var sfx = [];
-sfx[0] = new Howl({urls: ["audio/explosion_single01.mp3", "audio/explosion_single01.mp3"], volume: 0.5});
-sfx[1] = new Howl({urls: ["audio/explosion_single02.mp3", "audio/explosion_single02.mp3"], volume: 0.5});
-sfx[2] = new Howl({urls: ["audio/explosion_single03.mp3", "audio/explosion_single03.mp3"], volume: 0.5});
-sfx[3] = new Howl({urls: ["audio/explosion_single04.mp3", "audio/explosion_single04.mp3"], volume: 0.5});
-sfx[4] = new Howl({urls: ["audio/explosion_big.mp3", "audio/explosion_big.mp3"], volume: 0.5});
-sfx[5] = new Howl({urls: ["audio/bump.mp3", "audio/bump.mp3"], volume: 0.5});
-sfx[6] = new Howl({urls: ["audio/shot.mp3", "audio/shot.mp3"], volume: 0.5});
-sfx[7] = new Howl({urls: ["audio/fireworks01.mp3", "audio/fireworks01.mp3"], volume: 0.5});
-sfx[8] = new Howl({urls: ["audio/fireworks02.mp3", "audio/fireworks02.mp3"], volume: 0.5});
-sfx[9] = new Howl({urls: ["audio/fireworks03.mp3", "audio/fireworks03.mp3"], volume: 0.5});
-
+sfx[0] = new Howl({urls: ["audio/explosion_single01.mp3", "audio/explosion_single01.wav"], volume: 0.5});
+sfx[1] = new Howl({urls: ["audio/explosion_single02.mp3", "audio/explosion_single02.wav"], volume: 0.5});
+sfx[2] = new Howl({urls: ["audio/explosion_single03.mp3", "audio/explosion_single03.wav"], volume: 0.5});
+sfx[3] = new Howl({urls: ["audio/explosion_single04.mp3", "audio/explosion_single04.wav"], volume: 0.5});
+sfx[4] = new Howl({urls: ["audio/explosion_big.mp3", "audio/explosion_big.wav"], volume: 0.5});
+sfx[5] = new Howl({urls: ["audio/bump.mp3", "audio/bump.wav"], volume: 0.5});
+sfx[6] = new Howl({urls: ["audio/shot.mp3", "audio/shot.wav"], volume: 0.5});
+sfx[7] = new Howl({urls: ["audio/fireworks01.mp3", "audio/fireworks01.wav"], volume: 0.5});
+sfx[8] = new Howl({urls: ["audio/fireworks02.mp3", "audio/fireworks02.wav"], volume: 0.5});
+sfx[9] = new Howl({urls: ["audio/fireworks03.mp3", "audio/fireworks03.wav"], volume: 0.5});
+var bgm01 = new Howl({urls: ["audio/artillery_jazz.mp3", "audio/artillery_jazz.wav"], volume: 0.5, loop:true, onend: function(){ bgm01.pos({position:27.857});} });
 
 
 //COLORS
+const GREEN = "hsla(97, 61%, 44%, 1)";
+const DARK_GREEN = "hsla(97, 82%, 20%, 1)";
+const LEAF = "hsla(79, 56%, 45%, 1)";
+const OLIVE = "hsla(88, 82%, 20%, 1)";
 const LIME = "hsla(117, 100%, 50%, 1)";
 const LIME_50 = "hsla(117, 100%, 50%, .5)";
 const LIME_25 = "hsla(117, 100%, 50%, .25)";
@@ -83,7 +88,7 @@ var missileGravity = 0.16;
 
 var terrain = [];
 var terrainFallSpeed = .1;
-var fractalPoints = []; // fractalPoints.length will be two larger tan terrainComplexity.
+var fractalPoints = []; // fractalPoints.length will be two larger than terrainComplexity.
 var terrainMask = [];
 var terrainChunkWidth = 2; //4;
 var terrainComplexity = 6;
@@ -124,12 +129,17 @@ var turnDelay = 100;
 var maxTurnDelay = 1800;
 var gameWaiting = false;
 var gameState = 0;
-var stateDefinitions = ["gameStart", "p1_Idle", "p1_Aim", "p1_Power", "p1_Fire", "p2_Idle", "p2_Aim", "p2_Power", "p2_Fire,", "gameOver"];
+//var stateDefinitions = ["gameStart", "p1_Idle", "p1_Aim", "p1_Power", "p1_Fire", "p2_Idle", "p2_Aim", "p2_Power", "p2_Fire,", "gameOver"];
 //var gameReady = false;
 
 //buildGameStates();
+
 buildTerrain();
 
+//var bgmLoopTime = 96000; // - 27857.142;
+(function startMusicLoop(){
+	bgm01.play();
+})();
 
 
 //===========================================================================================
@@ -231,13 +241,20 @@ function Tank(x,y,deltaX,deltaY,color){
 	}
 
 	this.reSeat = function(){
+		var airborne = true;
 		for(var ii = 0; ii < terrain.length; ++ii){
 			if(this.solid.isIntersecting(terrain[ii])){
 				var overlap = this.solid.getBottom() - terrain[ii].yPos;
 				this.solid.yPos -= overlap;
+				var airborne = false;
 			}
 		}
-		this.isSeated = true;
+		if(airborne){
+			this.isSeated = false;
+			this.deltaY -= 0.001;
+		} else { 
+			this.isSeated = true;
+		}
 	}
 
 	this.impulse = function(source){
@@ -276,9 +293,11 @@ function Tank(x,y,deltaX,deltaY,color){
 		//createExplosion(this, 200, true);
 		this.isAlive = false;
 		sfx[4].play();
-
 		this.solid.xPos = null;
 		this.solid.yPos = null;
+
+		//giant explosion from off-screen
+
 
 		this.lose();
 	}
@@ -587,7 +606,9 @@ function single_explode(shot){ //single is the shot type.  Other weapons could b
 			addDamageText(dmg, p2.solid.xPos, p2.solid.yPos);
 		}
 	}
-	
+
+	p1.reSeat();
+	p2.reSeat();	
 	shot.sfx.play();
 	createExplosion(shot, particlesPerBurst, utils.getRandomBool());
 	destroyTerrain(shot);
@@ -716,7 +737,7 @@ function drawFrame(){
 
 
 function drawBackdrop(){
-	var grad = ctx.createLinearGradient(0,display.height/3,0,display.height);
+	var grad = ctx.createLinearGradient(0,display.height/5,0,display.height);
 	grad.addColorStop(0,"black");
 	grad.addColorStop(1,"purple");
 
@@ -772,8 +793,10 @@ function drawGUI(){
 	//Draw angle indicator lines
 	for(var ii = 0; ii < lines.length; ii+=2){
 		ctx.strokeStyle = "#FFFFFF";
+		ctx.beginPath();
 		ctx.moveTo(lines[ii].x, lines[ii].y);
 		ctx.lineTo(lines[ii+1].x, lines[ii+1].y);
+		ctx.closePath();
 		ctx.stroke();
 	}
 	lines.splice(0,lines.length); //clear the array without wasting more memory.
@@ -840,22 +863,30 @@ function drawTerrainMask() {
 	grad.addColorStop(1,BROWN);
 	ctx.fillStyle = grad;
 
-	ctx.beginPath();
-	ctx.moveTo(terrainMask[0].x, terrainMask[0].y);
-	for (var ii = 0; ii < terrainMask.length - 1; ++ii) {
-		ctx.lineTo(terrainMask[ii+1].x, terrainMask[ii+1].y);
-	};
+	// if(displayChunks){
+	// 	ctx.beginPath();
+	// 	ctx.moveTo(terrainMask[0].x, terrainMask[0].y);
+	// 	for (var ii = 0; ii < terrainMask.length - 1; ++ii) {
+	// 		ctx.lineTo(terrainMask[ii+1].x, terrainMask[ii+1].y);
+	// 	};
+	// 	ctx.fill();
+	// }
 
-	ctx.fill();
+	drawTerrainChunks();
+
 }
 
 
 function drawTerrainChunks(){
-	if(displayChunks){
-		for (var ii = 0; ii < terrain.length; ++ii) {
-			terrain[ii].draw();
-		}
+	var grad = ctx.createLinearGradient(0,display.height,0,display.height/2);
+	grad.addColorStop(0,OLIVE);
+	grad.addColorStop(1,LEAF);
+	ctx.fillStyle = grad;
+
+	for (var ii = 0; ii < terrain.length; ++ii) {
+		ctx.fillRect(terrain[ii].xPos, terrain[ii].yPos, terrain[ii].sizeX, terrain[ii].sizeY);
 	}
+	
 }
 
 
