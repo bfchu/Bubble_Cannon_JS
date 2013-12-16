@@ -38,7 +38,7 @@
 	- particle effects from explosions.
 	- particles interact with terrain physics sometimes.
 	- explosions throw around the player tanks with 'physics.' (simple force vectors found using directional unit vectors, not yet accounting for normal force)
-	- eplosions from 'tank rounds' calculate damage and physics based on proximity to players.
+	- explosions from 'tank rounds' calculate damage and physics based on proximity to players.
 	- terrain is destructible.
 	- terrain is randomly generated at game start using simple fractal line plotting.
 	- vector graphics!
@@ -74,7 +74,8 @@ sfx[6] = new Howl({urls: ["audio/shot.mp3", "audio/shot.wav"], volume: 0.5});
 sfx[7] = new Howl({urls: ["audio/fireworks01.mp3", "audio/fireworks01.wav"], volume: 0.5});
 sfx[8] = new Howl({urls: ["audio/fireworks02.mp3", "audio/fireworks02.wav"], volume: 0.5});
 sfx[9] = new Howl({urls: ["audio/fireworks03.mp3", "audio/fireworks03.wav"], volume: 0.5});
-sfx[10] = new Howl({urls: ["audio/artillery_jazz.mp3", "audio/artillery_jazz.wav"], volume: 0.5, loop: false, onend: function(){ this.play(); this.pos(27.857);});
+sfx[10] = new Howl({urls: ["audio/artillery_jazz.mp3", "audio/artillery_jazz.wav"], volume: 0.5, loop:false, 
+					onend: function(){ this.play(); this.pos(27.857);} });
 
 
 //COLORS
