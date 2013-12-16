@@ -14,7 +14,7 @@
 	- make player's current damage numbers flash, inflate, change color when they take damage.
 	- add graphical effects to the tank explosion.
 	- add sound effects to everything:
-		-BGM
+		-BGM still needs to loop properly
 	- make tanks more 'blob-like'
 		- give tanks cute faces ^-^
 		- make tank's eyes look in the direction their gun is pointing.
@@ -22,12 +22,12 @@
 		- music, sfx on-off button
 		- angle, power +/- buttons
 		- Fire button.
-	-move the player angle/power indicators to the top of the screen.
 
 	BUGS:
 	- terrain craters sometimes form little spikes or sharp dips in the middle.
 	- terrain sometimes generates with a lethal drop under player 2.
 	- bullet tunneling
+	- after being hit, players sometimes slide through terrain/air, ignoring gravity until they are re-seated by function call.
 //
 */
 
@@ -40,6 +40,10 @@ var mouseClick = false;
 var stageWidth = display.width;
 var stageHeight = display.height * (4/5);
 
+//Textures and images
+// audio icon from: https://www.iconfinder.com/icons/87527/audio_medium_panel_volume_icon
+// made by Frank Souza.
+imageLoader.queueImage("audio");
 
 //AUDIO
 var numExplosionSFXs = 4;
@@ -81,6 +85,10 @@ var gunLength = playerHitBoxSize + missileSize + 2;
 var tankGravity = 0.2;
 var p1 = new Tank((display.width/4), (display.height/4), 0,0, RED);
 var p2 = new Tank((display.width * (3/4)), (display.height/4), 0,0, VIOLET);
+var p1_nums_x = display.width/3 - 32;
+var p1_nums_y = display.height * (1/8);
+var p2_nums_x = display.width *(2/3) - 56;
+var p2_nums_y = display.height * (1/8);
 
 
 var projectiles = [];
@@ -749,19 +757,20 @@ function drawBackdrop(){
 
 
 function drawGUI(){
+
 	//draw translucent boxes around the player's angle and power readout to indicate whose turn it is.
 	if(gameState >= 1 && gameState < 5){
 		ctx.save();
-		ctx.globalAlpha = .4;
+		ctx.globalAlpha = .5;
 		ctx.fillStyle = p1.solid.color;
-		ctx.fillRect(display.width/3 - 60, display.height * (7/8) - 56 , 152, 100 );
+		ctx.fillRect(p1_nums_x - 28, p1_nums_y - 56 , 152, 100 );
 		ctx.restore();
 	}
 	if(gameState >= 5 && gameState < 9){
 		ctx.save();
 		ctx.globalAlpha = .4;
 		ctx.fillStyle = p2.solid.color;
-		ctx.fillRect(display.width *(2/3) - 84, display.height * (7/8) - 56 , 152, 100 );
+		ctx.fillRect(p2_nums_x - 28, p1_nums_y - 56 , 152, 100 );
 		ctx.restore();
 	}
 
@@ -770,10 +779,11 @@ function drawGUI(){
 	//ctx.fillText("FIRE!", display.width/2 - 32, display.height * (7/8));
 
 	//angle and power for both players
-	ctx.fillText("ANGLE: " + Math.floor(utils.toDegrees(p1.angle)), display.width/3 - 32, display.height * (7/8) - 16 );
-	ctx.fillText("POWER: " + p1.power, display.width/3 - 32, display.height * (7/8) + 16 );
-	ctx.fillText("ANGLE: " + Math.floor(utils.toDegrees(p2.angle)), display.width *(2/3) - 56, display.height * (7/8) - 16 );
-	ctx.fillText("POWER: " + p2.power, display.width *(2/3) - 56, display.height * (7/8) + 16 );
+	ctx.fillText("ANGLE: " + Math.floor(utils.toDegrees(p1.angle)), p1_nums_x, p1_nums_y - 16 );
+	ctx.fillText("POWER: " + p1.power, p1_nums_x, p1_nums_y + 16 );
+	ctx.fillText("ANGLE: " + Math.floor(utils.toDegrees(p2.angle)), p2_nums_x, p2_nums_y - 16 );
+	ctx.fillText("POWER: " + p2.power, p2_nums_x, p2_nums_y + 16 );
+
 	//player's damage numbers
 	ctx.save();
 	if(p1.damage > tankMass){
