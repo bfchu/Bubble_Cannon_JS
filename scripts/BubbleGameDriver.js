@@ -128,10 +128,12 @@ var particleGravity = .16;
 var particleFade = 0.01; //(1/72); //72 frames to disapear
 var minParticleSpeed = 1;
 var maxParticleSpeed = 12;
-var particlesPerBurst = 48;//32;
+var particlesPerBurst = 56;//48;//32;
 var particleTestTimer = 1200;
 
 var canSpawnParticlesTest = false;
+
+var explosions = [];
 
 var damageText = [];
 var textFade = 0.005;
@@ -648,6 +650,7 @@ function single_explode(shot){ //single is the shot type.  Other weapons could b
 	shot.sfx.play();
 	createExplosion(shot, particlesPerBurst, utils.getRandomBool());
 	destroyTerrain(shot);
+	explosions.push(shot);
 }
 
 function getDamage(distance, radius, impact){
@@ -765,6 +768,7 @@ function drawFrame(){
 
 	drawParticles();
 	drawProjectiles();
+	drawExplosions();
 	drawTerrainChunks();
 	drawGUI();
 	drawDamageTexts();
@@ -938,6 +942,20 @@ function drawTerrainChunks(){
 		ctx.fillRect(terrain[ii].xPos, terrain[ii].yPos, terrain[ii].sizeX, terrain[ii].sizeY);
 	}
 	
+}
+
+function drawExplosions(){
+	ctx.save();
+	for(var ii = 0; ii < explosions.length; ++ii){
+		ctx.fillStyle = "orange";
+		ctx.beginPath();
+      	ctx.arc(explosions[ii].xPos + explosions[ii].sizeX/2, explosions[ii].yPos + explosions[ii].sizeY/2, explosions[ii].blastRadius * 2/3, 0, 2 * Math.PI, false);
+      	ctx.fill();
+      	ctx.closePath();
+	}
+	ctx.restore();
+	explosions.splice(0,explosions.length);
+
 }
 
 
