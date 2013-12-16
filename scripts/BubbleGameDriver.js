@@ -40,10 +40,10 @@ var mouseClick = false;
 var stageWidth = display.width;
 var stageHeight = display.height * (4/5);
 
-//Textures and images
+//TEXTURES:
 // audio icon from: https://www.iconfinder.com/icons/87527/audio_medium_panel_volume_icon
 // made by Frank Souza.
-imageLoader.queueImage("audio");
+loadImage("audio");
 
 //AUDIO
 var numExplosionSFXs = 4;
@@ -58,7 +58,7 @@ sfx[6] = new Howl({urls: ["audio/shot.mp3", "audio/shot.wav"], volume: 0.5});
 sfx[7] = new Howl({urls: ["audio/fireworks01.mp3", "audio/fireworks01.wav"], volume: 0.5});
 sfx[8] = new Howl({urls: ["audio/fireworks02.mp3", "audio/fireworks02.wav"], volume: 0.5});
 sfx[9] = new Howl({urls: ["audio/fireworks03.mp3", "audio/fireworks03.wav"], volume: 0.5});
-var bgm01 = new Howl({urls: ["audio/artillery_jazz.mp3", "audio/artillery_jazz.wav"], volume: 0.5, loop:true, onend: function(){ bgm01.pos({position:27.857});} });
+sfx[10] = new Howl({urls: ["audio/artillery_jazz.mp3", "audio/artillery_jazz.wav"], volume: 0.5, loop: false,onend: function(){ bgm01.pos({position:27.857}); play();} });
 
 
 //COLORS
@@ -137,6 +137,7 @@ var turnDelay = 100;
 var maxTurnDelay = 1800;
 var gameWaiting = false;
 var gameState = 0;
+var audioOn = true;
 //var stateDefinitions = ["gameStart", "p1_Idle", "p1_Aim", "p1_Power", "p1_Fire", "p2_Idle", "p2_Aim", "p2_Power", "p2_Fire,", "gameOver"];
 //var gameReady = false;
 
@@ -146,7 +147,7 @@ buildTerrain();
 
 //var bgmLoopTime = 96000; // - 27857.142;
 (function startMusicLoop(){
-	bgm01.play();
+	sfx[10].play();
 })();
 
 
@@ -472,8 +473,17 @@ function onMouseUp(event) {
 
 function onKeyDown(event){
 	switch(event.keyCode){
-		case 32:
-			displayChunks = !displayChunks; 
+		case 32: //space bar
+			audioOn = !audioOn; 
+			if(audioOn){
+				for(var ii = 0; ii < sfx.length; ++ii){
+					sfx[ii].volume(0.5);
+				}
+			} else{
+				for(var ii = 0; ii < sfx.length; ++ii){
+					sfx[ii].volume(0.0);
+				}
+			}
 			break;
 		default:
 			break;
@@ -757,6 +767,19 @@ function drawBackdrop(){
 
 
 function drawGUI(){
+
+	//draw audio icon:
+	if(audioOn){
+		ctx.save();
+		ctx.globalAlpha = .7;
+		ctx.drawImage(images["audio"], display.width - 56, 40);
+		ctx.restore();
+	} else {
+		ctx.save();
+		ctx.globalAlpha = .4;
+		ctx.drawImage(images["audio"], display.width - 56, 40);
+		ctx.restore();
+	}
 
 	//draw translucent boxes around the player's angle and power readout to indicate whose turn it is.
 	if(gameState >= 1 && gameState < 5){
