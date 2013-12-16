@@ -39,8 +39,10 @@
 	- particles interact with terrain physics sometimes.
 	- explosions throw around the player tanks with 'physics.' (simple force vectors found using directional unit vectors, not yet accounting for normal force)
 	- explosions from 'tank rounds' calculate damage and physics based on proximity to players.
+	- player's resistence to force (mass) is reduced the more damage they have taken.
 	- terrain is destructible.
 	- terrain is randomly generated at game start using simple fractal line plotting.
+	- displays both player's current/most recent shot's angle and power, and indicated who's turn it is.
 	- vector graphics!
 	- color gradients!
 	- 
@@ -134,6 +136,7 @@ var particleTestTimer = 1200;
 var canSpawnParticlesTest = false;
 
 var explosions = [];
+var visibleBlastRatio = 3/5;
 
 var damageText = [];
 var textFade = 0.005;
@@ -862,7 +865,7 @@ function drawGUI(){
 		grad.addColorStop(0, SEAFOAM);
 		grad.addColorStop(1, GOLDEN_YELLOW);
 		ctx.fillStyle = grad;
-		ctx.fillRect(display.width * (2/7), display.height *(3/4), powerBar.x, powerBar.y);
+		ctx.fillRect(display.width * (2/7), display.height *(1/5) - 4, powerBar.x, powerBar.y);
 		powerBar = null;
 	}
 
@@ -949,7 +952,7 @@ function drawExplosions(){
 	for(var ii = 0; ii < explosions.length; ++ii){
 		ctx.fillStyle = "orange";
 		ctx.beginPath();
-      	ctx.arc(explosions[ii].xPos + explosions[ii].sizeX/2, explosions[ii].yPos + explosions[ii].sizeY/2, explosions[ii].blastRadius * 2/3, 0, 2 * Math.PI, false);
+      	ctx.arc(explosions[ii].xPos + explosions[ii].sizeX/2, explosions[ii].yPos + explosions[ii].sizeY/2, explosions[ii].blastRadius * visibleBlastRatio, 0, 2 * Math.PI, false);
       	ctx.fill();
       	ctx.closePath();
 	}
